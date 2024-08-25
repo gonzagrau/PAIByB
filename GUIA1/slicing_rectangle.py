@@ -1,10 +1,13 @@
 import sys
 import cv2
 import numpy as np
+import pandas as pd
+import json
 from PyQt6 import QtWidgets
 import pyqtgraph as pg
 from pyqtgraph import ImageView
 from pyqtgraph import RectROI
+
 
 class ImageSliceAnalyzer(QtWidgets.QMainWindow):
     def __init__(self):
@@ -33,15 +36,18 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
 
         # Add a line ROI for the user to draw a line on the image
         self.rect_roi = RectROI(pos=[100, 100], size=[50, 50], pen='r')
-        
         self.image_view.addItem(self.rect_roi)
-
-        # Connect the ROI's sigRegionChanged signal to update the plot
         self.rect_roi.sigRegionChanged.connect(self.update_intensity_profile)
-
+        
+        # Boton de guardado
+        self.save_button = QtWidgets.QPushButton(text='Save data', parent=self)
+        self.layout.addWidget(self.save_button)
+        self.save_button.clicked.connect(self.saveBasicImgInfo)
+        
+    
     def update_intensity_profile(self):
         """
-        Extract the grayscale intensity values along the line defined by the ROI and plot them.
+        Extract the grayscale intensity values along the ROI and plot them.
         """
         # Get the coordinates of the line
         rect_data = self.rect_roi.getArrayRegion(self.image, self.image_view.imageItem)
@@ -58,6 +64,58 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         # Plot the intensity profile
         self.plot_widget.clear()
         self.plot_widget.plot(distances, rect_mean, pen='b')
+        
+    def saveBasicImgInfo(self):
+        
+        # OBTENCIÓN DE INFORMACIÓN
+        # 1- Dimensiones de 'img'
+        img = self.image
+        name = 'carlos'
+        dims = np.shape(img)
+        height  = dims[0]
+        width   = dims[1]
+        
+        # 2- Información básica de 'img'
+        hist, var, mean = self.getBasicImgInfo(img)
+        
+        # CREACIÓN DE DATAFRAMES
+        # 1- Resumen de características de 'img'
+        dict_imgcarac = {"nombre_img":    name,
+                       "altura":        height,
+                       "width":         width,
+                       "varianza":      var,
+                       "mean":          mean}
+        with open("infosaves/datascalar.json", "w") as outfile: 
+            json.dump(dict_imgcarac, outfile)
+        
+        # 2- Histograma de 'img'
+        df_imghist = {"gray_lvl":      np.arange(256),
+                      "hist_value":    hist}
+        df_imghist = pd.DataFrame(data=df_imghist)
+        df_imghist.to_csv('infosaves/histinfo.csv', index=None)
+    
+    
+    ####################################################################################
+    # STATICMETHODS                                                                    #
+    ####################################################################################
+    
+    @staticmethod
+    def getBasicImgInfo(img):
+        
+        flat_img = np.ravel(img)
+        
+        # Cálculo del histograma de 'img'
+        hist_img, bins1 = np.histogram(flat_img,256,[0,256])
+        
+        # Cálculo de la varianza de 'img'car
+        var_img = np.var(flat_img)
+        
+        # Cálculo de la media de 'img'
+        mean_img = np.mean(flat_img)
+        
+        return hist_img, var_img, mean_img
+    
+       
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
