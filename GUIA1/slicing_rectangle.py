@@ -18,15 +18,15 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         # Main widget and layout
         self.main_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.main_widget)
-        self.layout = QtWidgets.QVBoxLayout(self.main_widget)
 
         # Image view for displaying the image
         self.image_view = ImageView()
-        self.layout.addWidget(self.image_view)
+        self.image_view.ui.histogram.hide()
+        self.image_view.ui.roiBtn.hide()
+        self.image_view.ui.menuBtn.hide()
 
         # Plot widget for displaying the intensity profile
         self.plot_widget = pg.PlotWidget(title="Intensity Profile")
-        self.layout.addWidget(self.plot_widget)
 
         # Load a sample image (for demonstration purposes, we'll create a synthetic image)
         self.image = cv2.imread('PAIByB-1/Noise-1.tif',cv2.IMREAD_GRAYSCALE)  # Synthetic image (grayscale)
@@ -34,17 +34,22 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         # Display the image
         self.image_view.setImage(self.image)
 
-        # Add a line ROI for the user to draw a line on the image
+        # Add a rectangula ROI for the user to draw a line on the image
         self.rect_roi = RectROI(pos=[100, 100], size=[50, 50], pen='r')
         self.image_view.addItem(self.rect_roi)
         self.rect_roi.sigRegionChanged.connect(self.update_intensity_profile)
         
         # Boton de guardado
         self.save_button = QtWidgets.QPushButton(text='Save data', parent=self)
-        self.layout.addWidget(self.save_button)
         self.save_button.clicked.connect(self.saveBasicImgInfo)
+
+        # LAYOUTS
+        self.layout = QtWidgets.QGridLayout(self.main_widget)
+        self.layout.addWidget(self.image_view, 0, 0, 1, 2)
+        self.layout.addWidget(self.plot_widget, 1, 0, 1, 2)
+        self.layout.addWidget(self.save_button, 2, 1)
+ 
         
-    
     def update_intensity_profile(self):
         """
         Extract the grayscale intensity values along the ROI and plot them.
@@ -69,11 +74,13 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         
         # OBTENCIÓN DE INFORMACIÓN
         # 1- Dimensiones de 'img'
-        img = self.image
-        name = 'carlos'
+        img = self.rect_roi.getArrayRegion(self.image, self.image_view.imageItem)
+        pos = self.rect_roi.pos()
+        x, y = pos.x(), pos.y()
         dims = np.shape(img)
-        height  = dims[0]
-        width   = dims[1]
+        height = dims[0]
+        width = dims[1]
+        name = f"{x}_{y}_{height}x{width}"
         
         # 2- Información básica de 'img'
         hist, var, mean = self.getBasicImgInfo(img)
@@ -85,14 +92,16 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
                        "width":         width,
                        "varianza":      var,
                        "mean":          mean}
-        with open("infosaves/datascalar.json", "w") as outfile: 
+        with open(f"infosaves/{name}.json", "w") as outfile: 
             json.dump(dict_imgcarac, outfile)
         
         # 2- Histograma de 'img'
         df_imghist = {"gray_lvl":      np.arange(256),
                       "hist_value":    hist}
         df_imghist = pd.DataFrame(data=df_imghist)
-        df_imghist.to_csv('infosaves/histinfo.csv', index=None)
+        df_imghist.to_csv(f'infosaves/hist{name}.csv', index=None)
+
+        print('saved data')
     
     
     ####################################################################################
