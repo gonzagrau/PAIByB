@@ -101,7 +101,7 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         df_imghist = pd.DataFrame(data=df_imghist)
         df_imghist.to_csv(f'infosaves/hist{name}.csv', index=None)
 
-        print('saved data')
+        print(f'Saved data for {name}')
     
     
     ####################################################################################
