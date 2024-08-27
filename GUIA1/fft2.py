@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage import io, color
+from skimage import io  # Correct import for imread
 
 def ideal_high_pass(shape, cutoff):
     rows, cols = shape
@@ -30,7 +30,7 @@ def apply_filter(image, H):
     return np.abs(filtered_image)   # Return the magnitude of the filtered image
 
 # Load a grayscale image
-image_path = 'path_to_your_image.jpg'  # Replace with your image file path
+image_path = r'C:\Users\ibajl\Desktop\Pybib\PAIByB\GUIA1\PAIByB-2\Pie2-1.tif'  # Use raw string literal
 image = io.imread(image_path, as_gray=True)
 
 # Create the high-pass filter
