@@ -44,3 +44,36 @@ def Wavelet(image_path:str, wavelet:str = 'haar', mode:str= 'periodization', Plo
         cv2.waitKey(0)
         cv2.destroyAllWindows()
     return reconstructed_image
+def Wavelet2(image_path:str, wavelet:str = 'haar', mode:str= 'periodization',Level:int = 2, Plot_all_levels:bool = True,Plot_reconstructed:bool = True):
+    "La función pretende calcular la transformada de Wvelets 2D de una imagen segun nivel y ventabna variables"
+    #1 importo imag
+    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    #para que sirva tiene que estar en float
+    image = np.float32(image)
+
+    #2 hago wavelet 
+    coeffs = pywt.wavedec2(image,wavelet,mode,Level)
+    
+
+    #ploteo 
+    if Plot_all_levels:
+       coeff_arr,coefs_slices = pywt.coeffs_to_array(coeffs,)
+       plt.figure(figsize=(20,20))
+       plt.imshow(coeff_arr,cmap = plt.cm.gray )
+       plt.title('Levels of wavelets')
+       plt.show()
+
+    reconstructed_image = pywt.waverec2(coeffs,wavelet,mode)
+    reconstructed_image = np.uint8(reconstructed_image)
+    if Plot_reconstructed:
+        cv2.imshow('Reconstructed Image', reconstructed_image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    return reconstructed_image,coeffs
+def main():
+    a, b =Wavelet2(image_path =r'GUIA1\PAIByB-2\Pie2-1.tif',Level= 1)
+    #b =Wavelet(image_path =r'GUIA1\PAIByB-2\Pie2-1.tif')
+
+
+if __name__ == '__main__':
+    main()
