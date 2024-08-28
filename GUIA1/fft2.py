@@ -34,8 +34,8 @@ image_path = r'C:\Users\ibajl\Desktop\Pybib\PAIByB\GUIA1\PAIByB-2\Pie2-1.tif'  #
 image = io.imread(image_path, as_gray=True)
 
 # Create the high-pass filter
-cutoff = 0.1
-H = gaussian_high_pass(image.shape, cutoff)
+cutoff = 0.65
+H = ideal_high_pass(image.shape, cutoff)
 
 # Apply the filter
 filtered_image = apply_filter(image, H)
