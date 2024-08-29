@@ -21,9 +21,9 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
 
         # Image view for displaying the image
         self.image_view = ImageView()
-        self.image_view.ui.histogram.hide()
-        self.image_view.ui.roiBtn.hide()
-        self.image_view.ui.menuBtn.hide()
+        # self.image_view.ui.histogram.hide()
+        # self.image_view.ui.roiBtn.hide()
+        # self.image_view.ui.menuBtn.hide()
 
         # Plot widget for displaying the intensity profile
         self.plot_widget = pg.PlotWidget(title="Intensity Profile")
