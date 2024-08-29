@@ -83,10 +83,19 @@ def Wavelet2(image_path:str,
         cv2.waitKey(0)
         cv2.destroyAllWindows()
     return reconstructed_image,coeffs
+def combine_noise_components(level:int,coeffs, wavelet='haar', mode='periodization'):
+    noise_coeffs = [np.zeros_like(coeffs[0])]  # Zero al coef principal
 
-import cv2
-import numpy as np
-import pywt
+    for i in range(1, len(coeffs)):
+        cH, cV, cD = coeffs[i]
+        noise_coeffs.append((cH, cV, cD))  # incorporo coefs ruido
+
+    
+    return noise_coeffs
+
+
+
+    return reconstructed_noise
 
 def read_coef(Coeffs: tuple, 
               level: int, 
@@ -104,8 +113,10 @@ def read_coef(Coeffs: tuple,
             modified_coeffs[-level] = (np.zeros_like(cH), cV, np.zeros_like(cD))
         elif coef_a_mostrar_vhd == 'h':           
             modified_coeffs[-level] = (cH, np.zeros_like(np.zeros_like(cV)), np.zeros_like(cD))
-        else:           
+        elif coef_a_mostrar_vhd == 'd':            
             modified_coeffs[-level] = (np.zeros_like(cH), np.zeros_like(np.zeros_like(cV)),cD)
+        else:
+           modified_coeffs = combine_noise_components(level=level,coeffs=Coeffs,wavelet= wavelet,mode= mode)
 
     else:
         raise ValueError(f"nivel invalido: {level} o coeficiente {coef_a_mostrar_vhd}.")
@@ -114,9 +125,10 @@ def read_coef(Coeffs: tuple,
     recon = np.uint8(np.clip(recon, 0, 255))
 
     if plot:
-        cv2.imshow('Reconstructed Image from Vertical Coefficients', recon)
+        cv2.imshow(f'imagen de {coef_a_mostrar_vhd} componentes', recon)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+
 
 
 
@@ -124,6 +136,7 @@ def main():
     a, b =Wavelet2(image_path =r'PAIByB-2\Pie2-1.tif',Level= 1,Plot_all_levels=False,Plot_reconstructed=False)
     #b =Wavelet(image_path =r'GUIA1\PAIByB-2\Pie2-1.tif')
     read_coef(b,level=1,plot=True,coef_a_mostrar_vhd='v')
+    
     
 if __name__ == '__main__':
     main()
