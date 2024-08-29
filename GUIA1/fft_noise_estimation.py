@@ -10,6 +10,7 @@ def ideal_high_pass(shape, cutoff):
     H = np.ones(shape)
     H[D < cutoff] = 0
     return H
+
 def gaussian_high_pass(shape, cutoff):
     rows, cols = shape
     u, v = np.fft.fftfreq(rows)[:, None], np.fft.fftfreq(cols)[None, :]
