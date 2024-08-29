@@ -70,6 +70,7 @@ def Wavelet2(image_path:str, wavelet:str = 'haar', mode:str= 'periodization',Lev
         cv2.waitKey(0)
         cv2.destroyAllWindows()
     return reconstructed_image,coeffs
+
 def main():
     a, b =Wavelet2(image_path =r'GUIA1\PAIByB-2\Pie2-1.tif',Level= 1)
     #b =Wavelet(image_path =r'GUIA1\PAIByB-2\Pie2-1.tif')
