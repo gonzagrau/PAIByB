@@ -2,7 +2,13 @@ import cv2
 import pywt
 import numpy as np
 import matplotlib.pyplot as plt
-def Wavelet(image_path:str, wavelet:str = 'haar', mode:str= 'periodization', Plot_all_levels:bool = True,Plot_reconstructed:bool = True):
+
+
+def Wavelet(image_path:str, 
+            wavelet:str = 'haar', 
+            mode:str= 'periodization', 
+            Plot_all_levels:bool = True,
+            Plot_reconstructed:bool = True):
     "La función pretende calcular la transformada de Wvelets 2D de una imagen segun nivel y ventabna variables"
     #1 importo imag
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -44,7 +50,14 @@ def Wavelet(image_path:str, wavelet:str = 'haar', mode:str= 'periodization', Plo
         cv2.waitKey(0)
         cv2.destroyAllWindows()
     return reconstructed_image
-def Wavelet2(image_path:str, wavelet:str = 'haar', mode:str= 'periodization',Level:int = 2, Plot_all_levels:bool = True,Plot_reconstructed:bool = True):
+
+
+def Wavelet2(image_path:str, 
+             wavelet:str = 'haar', 
+             mode:str= 'periodization',
+             Level:int = 2, 
+             Plot_all_levels:bool = True,
+             Plot_reconstructed:bool = True):
     "La función pretende calcular la transformada de Wvelets 2D de una imagen segun nivel y ventabna variables"
     #1 importo imag
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
@@ -71,9 +84,33 @@ def Wavelet2(image_path:str, wavelet:str = 'haar', mode:str= 'periodization',Lev
         cv2.destroyAllWindows()
     return reconstructed_image,coeffs
 
+def read_coef(Coeffs:tuple,
+              level:int,plot:bool = True,
+              wavelet:str = 'haar', 
+              mode:str= 'periodization'):
+    
+    tupple_c = Coeffs[-level]
+    recon = pywt.waverec2(tupple_c,wavelet,mode)
+    recon = np.uint8(recon)
+    cv2.imshow('rec', recon)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    
+
+    
+    return tupple_c
+
+
+
 def main():
-    a, b =Wavelet2(image_path =r'GUIA1\PAIByB-2\Pie2-1.tif',Level= 1)
+    a, b =Wavelet2(image_path =r'C:\Users\Usuario\Desktop\PIByB\PAIByB\GUIA1\PAIByB-2\Pie2-1.tif',Level= 1)
     #b =Wavelet(image_path =r'GUIA1\PAIByB-2\Pie2-1.tif')
+    image = cv2.imread(r'C:\Users\Usuario\Desktop\PIByB\PAIByB\GUIA1\PAIByB-2\Pie2-1.tif', cv2.IMREAD_GRAYSCALE)
+    cv2.imshow('Reconstructed Image', image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    
+
 
 
 if __name__ == '__main__':
