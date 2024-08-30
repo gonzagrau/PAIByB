@@ -1,3 +1,4 @@
+import os
 import sys
 import cv2
 import numpy as np
@@ -5,7 +6,8 @@ import pandas as pd
 import json
 from PyQt6 import QtWidgets
 import pyqtgraph as pg
-from pyqtgraph import ImageView
+from pygments.lexer import default
+from pyqtgraph import ImageView, LineSegmentROI
 from pyqtgraph import RectROI
 
 
@@ -18,6 +20,11 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         # Main widget and layout
         self.main_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.main_widget)
+
+        # Widget to select roi type
+        self.line_roi_radio = QtWidgets.QRadioButton('Line ROI')
+        self.line_roi_radio.setChecked(True)
+        self.rect_roi_radio = QtWidgets.QRadioButton('Rect ROI')
 
         # Button to select an image file
         self.select_button = QtWidgets.QPushButton("Select Image")
@@ -39,11 +46,15 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         # Display the image
         self.image_view.setImage(self.image)
 
-        # Add a rectangula ROI for the user to draw a line on the image
-        self.rect_roi = RectROI(pos=[100, 100], size=[50, 50], pen='r')
-        self.image_view.addItem(self.rect_roi)
-        self.rect_roi.sigRegionChanged.connect(self.update_intensity_profile)
-        
+        # Initialize Line ROI as default
+        self.roi = LineSegmentROI([[100, 100], [400, 400]], pen='r')
+        self.image_view.addItem(self.roi)
+        self.roi.sigRegionChanged.connect(self.update_intensity_profile)
+
+        # Connect radio buttons to toggle ROI types
+        self.rect_roi_radio.toggled.connect(self.toggle_roi)
+        self.line_roi_radio.toggled.connect(self.toggle_roi)
+
         # Save data confirm
         self.confirm_save = QtWidgets.QLabel(text='')
 
@@ -53,11 +64,13 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
 
         # LAYOUTS
         self.layout = QtWidgets.QGridLayout(self.main_widget)
-        self.layout.addWidget(self.select_button, 0, 0, 1, 2)
-        self.layout.addWidget(self.image_view, 1, 0, 1, 2)
-        self.layout.addWidget(self.plot_widget, 2, 0, 1, 2)
+        self.layout.addWidget(self.line_roi_radio, 0, 0, 1, 1)
+        self.layout.addWidget(self.rect_roi_radio, 0, 1, 1, 1)
+        self.layout.addWidget(self.select_button, 0, 2, 1, 1)
+        self.layout.addWidget(self.image_view, 1, 0, 1, 3)
+        self.layout.addWidget(self.plot_widget, 2, 0, 1, 3)
         self.layout.addWidget(self.confirm_save, 3, 0, 1, 2)
-        self.layout.addWidget(self.save_button, 3, 1)
+        self.layout.addWidget(self.save_button, 3, 1, 1, 1)
  
     def open_file_dialog(self):
         # Set the initial directory and file filter
@@ -65,68 +78,109 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         file_filter = "Image Files (*.png *.jpg *.jpeg *.bmp *.gif *.tif)"
 
         # Show the file dialog and get the selected file path
-        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select an Image", ".", file_filter)
+        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select an Image", "PAIByB-1", file_filter)
 
         # Check if a file was selected
         if file_path:
             self.impath = file_path
             self.display_image()
 
+    def toggle_roi(self):
+        # Remove existing ROI before adding a new one
+        self.image_view.removeItem(self.roi)
+
+        # Create new ROI based on the selected radio button
+        if self.rect_roi_radio.isChecked():
+            self.roi = RectROI(pos=[100, 100], size=[50, 50], pen='r')
+        elif self.line_roi_radio.isChecked():
+            self.roi = LineSegmentROI([[100, 100], [400, 400]], pen='r')
+
+        # Add the new ROI to the image view and connect its signal
+        self.image_view.addItem(self.roi)
+        self.roi.sigRegionChanged.connect(self.update_intensity_profile)
+
     def display_image(self):
-        image = cv2.imread(self.impath, cv2.IMREAD_GRAYSCALE)
-        self.image_view.setImage(image)
+        self.image = cv2.imread(self.impath, cv2.IMREAD_GRAYSCALE)
+        if self.image is not None:
+            self.image_view.setImage(self.image)
 
     def update_intensity_profile(self):
         """
         Extract the grayscale intensity values along the ROI and plot them.
         """
         # Get the coordinates of the line
-        rect_data = self.rect_roi.getArrayRegion(self.image, self.image_view.imageItem)
+        roidata = self.roi.getArrayRegion(self.image, self.image_view.imageItem)
         
         # If no valid data is found, do nothing
-        if rect_data is None:
+        if roidata is None:
             return
         
+        if self.rect_roi_radio.isChecked():
+            profile = roidata.mean(axis=1)
+            distances = np.arange(roidata.shape[0])
 
-        rect_mean = rect_data.mean(axis=0)
-        # Calculate the distance along the line
-        distances = np.arange(rect_data.shape[1])
+        elif self.line_roi_radio.isChecked():
+            profile = roidata
+            distances = np.arange(roidata.shape[0])
 
         # Plot the intensity profile
         self.plot_widget.clear()
-        self.plot_widget.plot(distances, rect_mean, pen='b')
+        self.plot_widget.plot(distances, profile, pen='b')
         
     def saveBasicImgInfo(self):
-        
         # OBTENCIÓN DE INFORMACIÓN
         # 1- Dimensiones de 'img'
         filename = self.impath.split('/')[-1].split('.')[0]
-        img = self.rect_roi.getArrayRegion(self.image, self.image_view.imageItem)
-        pos = self.rect_roi.pos()
-        x, y = pos.x(), pos.y()
+        img = self.roi.getArrayRegion(self.image, self.image_view.imageItem)
+        pos = self.roi.pos()
+        x, y = int(pos.x()), int(pos.y())
         dims = np.shape(img)
-        height = dims[0]
-        width = dims[1]
-        name = f"{filename}_{x}_{y}_{height}x{width}"
-        
+
         # 2- Información básica de 'img'
-        hist, var, mean = self.getBasicImgInfo(img)
-        
-        # CREACIÓN DE DATAFRAMES
-        # 1- Resumen de características de 'img'
-        dict_imgcarac = {"nombre_img":    name,
-                       "altura":        height,
-                       "width":         width,
-                       "varianza":      var,
-                       "mean":          mean}
-        with open(f"infosaves/{name}.json", "w") as outfile: 
+        hist, std, mean = self.getBasicImgInfo(img)
+
+        # 3 - Output
+        roi_type = None
+        dict_imgcarac = {}
+        if self.line_roi_radio.isChecked():
+            roi_type = 'line'
+            dict_imgcarac = {"nombre_img": filename,
+                             "x": x,
+                             "y": y,
+                             "roi_type": 'line',
+                             "length": dims[0],
+                             "desv_est": std,
+                             "mean": mean}
+
+        elif self.rect_roi_radio.isChecked():
+            roi_type = 'rect'
+            height = dims[0]
+            width = dims[1]
+            dict_imgcarac = {"nombre_img": filename,
+                             "x": x,
+                             "y": y,
+                             "roi_type": 'rect',
+                             "height": height,
+                             "width": width,
+                             "desv_est": std,
+                             "mean": mean}
+
+        name = f"{filename}_{x}_{y}_{roi_type}"
+
+        # 4. Creacion de directorios
+
+        datadir = f"infosaves/{filename}"
+        if not os.path.exists(datadir):
+            os.makedirs(datadir)
+
+        with open(f"{datadir}/{name}.json", "w") as outfile:
             json.dump(dict_imgcarac, outfile)
         
         # 2- Histograma de 'img'
         df_imghist = {"gray_lvl":      np.arange(256),
                       "hist_value":    hist}
         df_imghist = pd.DataFrame(data=df_imghist)
-        df_imghist.to_csv(f'infosaves/hist{name}.csv', index=None)
+        df_imghist.to_csv(rf'{datadir}/hist_{name}.csv', index=None)
 
         self.confirm_save.setText(f'Saved data for {filename}')
     
@@ -144,12 +198,12 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         hist_img, bins1 = np.histogram(flat_img,256,[0,256])
         
         # Cálculo de la varianza de 'img'car
-        var_img = np.var(flat_img)
+        std_img = np.std(flat_img)
         
         # Cálculo de la media de 'img'
         mean_img = np.mean(flat_img)
         
-        return hist_img, var_img, mean_img
+        return hist_img, std_img, mean_img
     
        
 
