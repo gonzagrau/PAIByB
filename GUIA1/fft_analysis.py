@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 # Calculations
 
 def calculate2DFT(img):
@@ -102,7 +101,7 @@ def denoisingFFT(img,ths_list,mode='1'):
         signal = np.uint8(signal)
         
         return signal
-        
+
 
 # Plots
 
