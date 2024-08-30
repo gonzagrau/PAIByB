@@ -43,6 +43,23 @@ def cr8MaskForNoise(img,thresh_list=None):
     
     return mask
 
+def cr8MaskForSignal(img,thresh_list=None):
+    img_ms = calculateMagnitudSpectrum(img)
+    
+    if thresh_list == None:
+        thresh_min = np.min(img_ms)
+        thresh_max = np.max(img_ms)
+    else:
+        thresh_min = thresh_list[0]
+        thresh_max = thresh_list[1]
+    
+    mask = img_ms
+    mask[mask<thresh_min] = 0.0
+    mask[mask>thresh_max] = 0.0
+    mask[mask != 0.0] = 1.0
+    
+    return mask
+
 def getNoiseFFT(img,mask):
     
     img_fft = calculate2DFT(img)
@@ -53,21 +70,39 @@ def getNoiseFFT(img,mask):
     
     return noise
 
-def denoisingFFT(img,mask):
+def denoisingFFT(img,ths_list,mode='1'):
     
-    img_fft = calculate2DFT(img)
+    if mode == '0':
     
-    noise = calculate2DInverseFT(img_fft*mask)
+        mask = cr8MaskForNoise(img,ths_list)
     
-    dummy0 = img - noise
+        img_fft = calculate2DFT(img)
+        
+        noise = calculate2DInverseFT(img_fft*mask)
+        
+        dummy0 = img - noise
 
-    dummy1 = dummy0
+        dummy1 = dummy0
 
-    dummy1[dummy1 < 0] = 0
+        dummy1[dummy1 < 0] = 0
 
-    dummy2 = np.uint8(dummy1)
+        dummy2 = np.uint8(dummy1)
+        
+        return dummy2
     
-    return dummy2
+    elif mode == '1':
+        mask = cr8MaskForSignal(img,ths_list)
+        
+        img_fft = calculate2DFT(img)
+        
+        signal = calculate2DInverseFT(img_fft*mask)
+        
+        signal[signal < 0] = 0
+        
+        signal = np.uint8(signal)
+        
+        return signal
+        
 
 # Plots
 
@@ -181,8 +216,7 @@ def cr8FFTNoiseEstimPlots(img,thresh_list,name='name'):
     
 def cr8FFTDenoisingPlots(img,thresh_list,name='name'):
     
-    mask = cr8MaskForNoise(img,thresh_list)
-    filtered_img = denoisingFFT(img,mask)
+    filtered_img = denoisingFFT(img,thresh_list)
 
     # 0º - Figure set-up
     fig = plt.figure(figsize=(14,7))
