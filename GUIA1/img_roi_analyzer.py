@@ -79,6 +79,7 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
 
         # Show the file dialog and get the selected file path
         file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select an Image", "PAIByB-1", file_filter)
+        self.update_intensity_profile()
 
         # Check if a file was selected
         if file_path:
@@ -98,6 +99,7 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         # Add the new ROI to the image view and connect its signal
         self.image_view.addItem(self.roi)
         self.roi.sigRegionChanged.connect(self.update_intensity_profile)
+        self.update_intensity_profile()
 
     def display_image(self):
         self.image = cv2.imread(self.impath, cv2.IMREAD_GRAYSCALE)
@@ -118,10 +120,12 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         if self.rect_roi_radio.isChecked():
             profile = roidata.mean(axis=1)
             distances = np.arange(roidata.shape[0])
+            self.plot_widget.getPlotItem().setTitle('Intensity Profile (row averaged)')
 
         elif self.line_roi_radio.isChecked():
             profile = roidata
             distances = np.arange(roidata.shape[0])
+            self.plot_widget.getPlotItem().setTitle('Intensity Profile over line')
 
         # Plot the intensity profile
         self.plot_widget.clear()
@@ -182,7 +186,7 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         df_imghist = pd.DataFrame(data=df_imghist)
         df_imghist.to_csv(rf'{datadir}/hist_{name}.csv', index=None)
 
-        self.confirm_save.setText(f'Saved data for {filename}')
+        self.confirm_save.setText(f'Saved data for {filename} using {roi_type} ROI selector')
     
     
     ####################################################################################
