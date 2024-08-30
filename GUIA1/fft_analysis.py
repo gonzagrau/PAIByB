@@ -231,3 +231,5 @@ def cr8FFTDenoisingPlots(img,thresh_list,name='name'):
     ax.set_title(f"Denoising - {name}")
 
     plt.show()
+
+    return filtered_img

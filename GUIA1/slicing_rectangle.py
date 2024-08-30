@@ -19,17 +19,22 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         self.main_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.main_widget)
 
+        # Button to select an image file
+        self.select_button = QtWidgets.QPushButton("Select Image")
+        self.select_button.clicked.connect(self.open_file_dialog)
+
         # Image view for displaying the image
         self.image_view = ImageView()
-        # self.image_view.ui.histogram.hide()
-        # self.image_view.ui.roiBtn.hide()
-        # self.image_view.ui.menuBtn.hide()
+        self.image_view.ui.histogram.hide()
+        self.image_view.ui.roiBtn.hide()
+        self.image_view.ui.menuBtn.hide()
 
         # Plot widget for displaying the intensity profile
         self.plot_widget = pg.PlotWidget(title="Intensity Profile")
 
         # Load a sample image (for demonstration purposes, we'll create a synthetic image)
-        self.image = cv2.imread('PAIByB-1/Noise-1.tif',cv2.IMREAD_GRAYSCALE)  # Synthetic image (grayscale)
+        self.impath = 'PAIByB-1/Noise-1.tif'
+        self.image = cv2.imread(self.impath,cv2.IMREAD_GRAYSCALE)  # Synthetic image (grayscale)
 
         # Display the image
         self.image_view.setImage(self.image)
@@ -39,17 +44,38 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         self.image_view.addItem(self.rect_roi)
         self.rect_roi.sigRegionChanged.connect(self.update_intensity_profile)
         
+        # Save data confirm
+        self.confirm_save = QtWidgets.QLabel(text='')
+
         # Boton de guardado
         self.save_button = QtWidgets.QPushButton(text='Save data', parent=self)
         self.save_button.clicked.connect(self.saveBasicImgInfo)
 
         # LAYOUTS
         self.layout = QtWidgets.QGridLayout(self.main_widget)
-        self.layout.addWidget(self.image_view, 0, 0, 1, 2)
-        self.layout.addWidget(self.plot_widget, 1, 0, 1, 2)
-        self.layout.addWidget(self.save_button, 2, 1)
+        self.layout.addWidget(self.select_button, 0, 0, 1, 2)
+        self.layout.addWidget(self.image_view, 1, 0, 1, 2)
+        self.layout.addWidget(self.plot_widget, 2, 0, 1, 2)
+        self.layout.addWidget(self.confirm_save, 3, 0, 1, 2)
+        self.layout.addWidget(self.save_button, 3, 1)
  
-        
+    def open_file_dialog(self):
+        # Set the initial directory and file filter
+        # options = QtWidgets.QFileDialog.Option()\
+        file_filter = "Image Files (*.png *.jpg *.jpeg *.bmp *.gif *.tif)"
+
+        # Show the file dialog and get the selected file path
+        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select an Image", ".", file_filter)
+
+        # Check if a file was selected
+        if file_path:
+            self.impath = file_path
+            self.display_image()
+
+    def display_image(self):
+        image = cv2.imread(self.impath, cv2.IMREAD_GRAYSCALE)
+        self.image_view.setImage(image)
+
     def update_intensity_profile(self):
         """
         Extract the grayscale intensity values along the ROI and plot them.
@@ -74,13 +100,14 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         
         # OBTENCIÓN DE INFORMACIÓN
         # 1- Dimensiones de 'img'
+        filename = self.impath.split('/')[-1].split('.')[0]
         img = self.rect_roi.getArrayRegion(self.image, self.image_view.imageItem)
         pos = self.rect_roi.pos()
         x, y = pos.x(), pos.y()
         dims = np.shape(img)
         height = dims[0]
         width = dims[1]
-        name = f"{x}_{y}_{height}x{width}"
+        name = f"{filename}_{x}_{y}_{height}x{width}"
         
         # 2- Información básica de 'img'
         hist, var, mean = self.getBasicImgInfo(img)
@@ -101,7 +128,7 @@ class ImageSliceAnalyzer(QtWidgets.QMainWindow):
         df_imghist = pd.DataFrame(data=df_imghist)
         df_imghist.to_csv(f'infosaves/hist{name}.csv', index=None)
 
-        print(f'Saved data for {name}')
+        self.confirm_save.setText(f'Saved data for {filename}')
     
     
     ####################################################################################
