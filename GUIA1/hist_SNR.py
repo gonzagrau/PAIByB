@@ -36,10 +36,10 @@ class HistogramRangeApp(QtWidgets.QMainWindow):
         self.bins = np.arange(self.max_gray_val)
         self.hist.setHistogramRange(0, 255)
         self.hist.orientation = 'horizontal'
-        self.hist.sigLevelsChanged.connect(self.update_histogram_range)
+        self.hist.sigLevelsChanged.connect(self.update_snr_tag)
         self.layout.addWidget(self.image_view)
 
-    def update_histogram_range(self):
+    def update_snr_tag(self):
         """
         This method is called whenever the histogram range is changed.
         It updates the label to reflect the current range.
