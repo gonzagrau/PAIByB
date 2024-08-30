@@ -1,0 +1,15 @@
+\babel@toc {spanish}{}\relax 
+\contentsline {section}{\numberline {1}Introducción}{3}{section.1}%
+\contentsline {section}{\numberline {2}Estimación de ruido}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Estimación estadística}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Estimación por histograma}{3}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Estimación por Fourier}{3}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Estimación por Wavelets}{3}{subsection.2.4}%
+\contentsline {section}{\numberline {3}Denoising}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Denoising espacial}{3}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Denoising por Fourier}{3}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Denoising por Wavelets}{3}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Denoising por ecualización del histograma}{3}{subsection.3.4}%
+\contentsline {section}{\numberline {4}Discusión}{3}{section.4}%
+\contentsline {section}{\numberline {5}Conclusión}{3}{section.5}%
+\contentsline {section}{\numberline {6}Anexos}{3}{section.6}%
