@@ -173,6 +173,8 @@ def cr8FFTimgsPlots(img,name='name'):
 
     plt.show()
 
+    return fig
+
 def cr8FFTNoiseEstimPlots(img,thresh_list,name='name'):
     mask = cr8MaskForNoise(img,thresh_list)
     noise = getNoiseFFT(img,mask)
