@@ -212,6 +212,8 @@ def cr8FFTNoiseEstimPlots(img,thresh_list,name='name'):
     fig.colorbar(surf1,shrink=0.75,aspect=10)
 
     plt.show()
+
+    return noise
     
 def cr8FFTDenoisingPlots(img,thresh_list,name='name'):
     
