@@ -215,7 +215,7 @@ def cr8FFTNoiseEstimPlots(img,thresh_list,name='name'):
 
     plt.show()
 
-    return noise
+    return fig
     
 def cr8FFTDenoisingPlots(img,thresh_list,name='name'):
     
