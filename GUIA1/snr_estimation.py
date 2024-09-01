@@ -33,6 +33,7 @@ def get_snr_metrics(original_img_dir: str,
 
     original_files = os.listdir(original_img_dir)
     reconstructed_files = os.listdir(reconstructed_img_dir)
+    original_files.sort()
 
     original_rec_dict = {original_file: reconstructed_file for original_file in original_files
                          for reconstructed_file in reconstructed_files
