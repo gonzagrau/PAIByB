@@ -148,6 +148,60 @@ def get_file_paths(directorio):
     return file_paths
 
 
+def filtrado(coef_a_reconstruir: list,
+             image_path: str,
+             Coeffs: tuple, 
+             level: int, 
+             plot: bool = True, 
+             wavelet: str = 'haar', 
+             mode: str = 'periodization'):
+    #checkeo que el nivel este bien acode a los coefficientes 
+    if level > len(Coeffs) - 1:
+        raise ValueError(f"nivel invalido: {level}.")
+    
+    #checkeo que la lista no tenga otra cosa que 0 y 1
+
+    check_lista = []
+    for lista in coef_a_reconstruir:
+        check_lista.extend(lista)
+    
+    for numero in check_lista:
+        if numero != 0 and numero != 1:
+            raise ValueError("La lista contiene un número que no es 0 ni 1.")
+    #creo lista mod    
+    modified_coeffs = [None] * len(Coeffs)
+
+    #me fijo coef 0
+
+    if coef_a_reconstruir[0][0] == 1:
+        modified_coeffs[0] = Coeffs[0]
+    else:
+        modified_coeffs[0] = np.zeros_like(Coeffs[0])
+
+    #me fijo resto componentes
+
+    for nivel in range(1, level + 1):
+        detail_coeffs = list(Coeffs[nivel])
+        for coef in range(3):
+            if coef_a_reconstruir[nivel][coef] == 1:
+                detail_coeffs[coef] = Coeffs[nivel][coef]
+            else:
+                detail_coeffs[coef] = np.zeros_like(Coeffs[nivel][coef])
+        modified_coeffs[nivel] = tuple(detail_coeffs)
+
+    reconstructed_image = pywt.waverec2(modified_coeffs, wavelet, mode)
+
+    if plot:
+        plt.figure(figsize=(10, 10))
+        plt.imshow(reconstructed_image, cmap='gray')
+        plt.title(f'Imagen filtrada, file {image_path}')
+        plt.axis('off')
+        plt.show()
+    
+    return reconstructed_image, modified_coeffs
+
+    
+
 def main():
     #plot original image
     
@@ -160,14 +214,22 @@ def main():
     plt.show() """
 
     
-    Level = 1
+    Level = 2
     image_path = 'PAIByB-2\Pie2-2.tif'
 
     image = cv2.imread('PAIByB-2\Pie2-2.tif', cv2.IMREAD_GRAYSCALE) 
     image = np.float32(image) 
+    
     #plot all coef 
-    imag_rec, coeffs = Wavelet2('PAIByB-2\Pie2-2.tif',Level= 1,Plot_all_levels= False, Plot_reconstructed_imagestructed= False)
+    imag_rec, coeffs = Wavelet2('PAIByB-2\Pie2-2.tif',Level= 2,Plot_all_levels= False, Plot_reconstructed_imagestructed= False)
+
+
+    list_coeffs =[[1],[1,1,1],[1,1,1]]
+
+    a,b =filtrado(list_coeffs,image_path=image_path,Coeffs=coeffs,level = Level)
+    """ 
     coeff_arr,coefs_slices = pywt.coeffs_to_array(coeffs,)
+
     plt.figure(figsize=(20,20))
     plt.imshow(coeff_arr,cmap = plt.cm.gray )
     plt.title(f'Level {Level} de wavelets para el archivo {image_path}')
@@ -189,16 +251,9 @@ def main():
     plt.imshow(image,cmap = plt.cm.gray )
     plt.title(f'imagen original, archivo {image_path}')
 
-    
 
-    plt.show()
+    plt.show() """
 
-
-
-    #a, b =Wavelet2(image_path =r'PAIByB-2\Pie2-1.tif',Level= 1,Plot_all_levels=False,Plot_reconstructed_imagestructed=False)
-    #b =Wavelet(image_path =r'GUIA1\PAIByB-2\Pie2-1.tif')
-    #rec = read_coef(b,level=1,plot=True,coef_a_mostrar_vhd='v')
-    
     
 if __name__ == '__main__':
     main()
