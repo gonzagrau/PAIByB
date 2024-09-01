@@ -2,6 +2,7 @@ from typing import Dict, Tuple
 import os
 import cv2
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from IPython.core.pylabtools import figsize
 from skimage.metrics import structural_similarity as ssim
@@ -23,12 +24,12 @@ def peak_SNR(img_og: np.ndarray, img_noise: np.ndarray) -> float:
 def get_snr_metrics(original_img_dir: str,
                     reconstructed_img_dir: str,
                     print_results: bool = True,
-                    plot: bool = True) -> Dict[str, Tuple[float, float]]:
+                    plot: bool = True) -> pd.DataFrame:
     """
     Compute peak_SNR and SSIM for an original image and its recontructed version
     :param original_img_dir: directory of original image
     :param reconstructed_img_dir: directory of reconstructed images
-    :return: dictionary with image name and a tuple of PSNR, SSIM
+    :return: dataframe from PSNR and SSIM
     """
     original_files = os.listdir(original_img_dir)
     reconstructed_files = os.listdir(reconstructed_img_dir)
@@ -38,17 +39,17 @@ def get_snr_metrics(original_img_dir: str,
                          for reconstructed_file in reconstructed_files
                          if original_file.split('.')[0] in reconstructed_file}
 
-    metrics_dir = {}
-    fig, axs = plt.subplots(len(original_files), 2, figsize=(10, 20))
+    metrics_dic = {}
+    if plot:
+        fig, axs = plt.subplots(len(original_files), 2, figsize=(10, 20))
     i = 0
     for original, reconstructed in original_rec_dict.items():
-        print(f"Noise estimation for {original}")
         img_original = cv2.imread(os.path.join(original_img_dir, original), cv2.IMREAD_GRAYSCALE)
         img_reconstructed = cv2.imread(os.path.join(reconstructed_img_dir, reconstructed), cv2.IMREAD_GRAYSCALE)
         PSNR = peak_SNR(img_original, img_reconstructed)
         SSIM = ssim(img_original, img_reconstructed)
 
-        metrics_dir[original] = (PSNR, SSIM)
+        metrics_dic[original] = (PSNR, SSIM)
 
         if print_results:
             print(f"Noise estimation for {original}")
@@ -65,9 +66,11 @@ def get_snr_metrics(original_img_dir: str,
             axs[i, 1].axis('off')
 
         i += 1
+    
 
     if plot:
         plt.axis('off')
         plt.show()
 
-    return metrics_dir
+    metrics_df = pd.DataFrame(metrics_dic).T.rename({0: 'PSNR', 1:'SSIM'}, axis='columns')
+    return metrics_df
