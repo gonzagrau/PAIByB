@@ -30,7 +30,6 @@ def get_snr_metrics(original_img_dir: str,
     :param reconstructed_img_dir: directory of reconstructed images
     :return: dictionary with image name and a tuple of PSNR, SSIM
     """
-
     original_files = os.listdir(original_img_dir)
     reconstructed_files = os.listdir(reconstructed_img_dir)
     original_files.sort()

@@ -224,7 +224,7 @@ def main():
     imag_rec, coeffs = Wavelet2('PAIByB-2\Pie2-2.tif',Level= 2,Plot_all_levels= False, Plot_reconstructed_imagestructed= False)
 
 
-    list_coeffs =[[1],[1,1,1],[1,1,1]]
+    list_coeffs =[[0],[0,0,0],[1,1,1]]
 
     a,b =filtrado(list_coeffs,image_path=image_path,Coeffs=coeffs,level = Level)
     """ 
