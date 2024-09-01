@@ -108,17 +108,17 @@ def read_coef(image_path:str,
     modified_coeffs = [np.zeros_like(c) for c in Coeffs]
 
     if level <= len(Coeffs) - 1:
-            cH, cV, cD = Coeffs[-level]
-            if coef_a_mostrar_vhd == 'v':
-                modified_coeffs[-level] = (np.zeros_like(cH), cV, np.zeros_like(cD))
-            elif coef_a_mostrar_vhd == 'h':           
-                modified_coeffs[-level] = (cH, np.zeros_like(cV), np.zeros_like(cD))
-            elif coef_a_mostrar_vhd == 'd':            
-                modified_coeffs[-level] = (np.zeros_like(cH), np.zeros_like(cV), cD)
-            elif coef_a_mostrar_vhd == 'todos':
-                modified_coeffs = combine_noise_components(level=level, coeffs=Coeffs, wavelet=wavelet, mode=mode)
-            else:
-                raise ValueError(f"Invalid coefficient type: {coef_a_mostrar_vhd}. Use 'v', 'h', 'd', or 'todos'.")
+        cH, cV, cD = Coeffs[-level]
+        if coef_a_mostrar_vhd == 'v':
+            modified_coeffs[-level] = (np.zeros_like(cH), cV, np.zeros_like(cD))
+        elif coef_a_mostrar_vhd == 'h':           
+            modified_coeffs[-level] = (cH, np.zeros_like(cV), np.zeros_like(cD))
+        elif coef_a_mostrar_vhd == 'd':            
+            modified_coeffs[-level] = (np.zeros_like(cH), np.zeros_like(cV), cD)
+        elif coef_a_mostrar_vhd == 'todos':
+            modified_coeffs = combine_noise_components(level=level, coeffs=Coeffs, wavelet=wavelet, mode=mode)
+        else:
+            raise ValueError(f"Invalid coefficient type: {coef_a_mostrar_vhd}. Use 'v', 'h', 'd', or 'todos'.")
 
     else:
         raise ValueError(f"nivel invalido: {level} o coeficiente {coef_a_mostrar_vhd}.")
