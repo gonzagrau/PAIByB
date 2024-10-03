@@ -67,7 +67,14 @@ def Contornos( image):
 
 
 #leo la imagen 
-path = r'PAIByB/GUIA2/PIByB_4/img-5.tif'
-
-image = img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
-Contornos(image)
+#path = r'PIByB_4/img-5.tif'
+# Verificar si la imagen se cargó correctamente
+# Ruta de la imagen
+path = r'C:/Users/Usuario/Desktop/PIByB/PAIByB/GUIA2/PIByB_4/img-5.tif'
+print(f"Intentando cargar la imagen desde: {path}")
+image = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+if image is None:
+    print("Error: No se pudo cargar la imagen. Verifica la ruta y el formato del archivo.")
+else:
+    print("Imagen cargada correctamente.")
+    Contornos(image)
