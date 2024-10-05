@@ -59,7 +59,7 @@ def Contornos(image, otsu: bool = False, upper_tresh: int = 200, lower_tresh: in
 
     return contornos
 
-def contorno2fourier(borde, n_descriptores: int):
+def contorno2fourier(borde, porcentaje_descriptores: float):
     # Convertir el contorno a formato complejo
     borde_complejo = np.array([point[0][0] + 1j * point[0][1] for point in borde])
     
@@ -67,12 +67,16 @@ def contorno2fourier(borde, n_descriptores: int):
     borde_fourier = np.fft.fft(borde_complejo)
     borde_fourier = np.fft.fftshift(borde_fourier)
 
+    # Calcular el número de descriptores basado en el porcentaje
+    n_total_frecuencias = len(borde_fourier)
+    n_descriptores = int(n_total_frecuencias * porcentaje_descriptores)
+
     # Filtrar y mantener solo los primeros y últimos n descriptores
     fourier_filtrado = np.zeros(borde_fourier.shape, dtype=complex)
     fourier_filtrado[:n_descriptores] = borde_fourier[:n_descriptores]
     fourier_filtrado[-n_descriptores:] = borde_fourier[-n_descriptores:]
 
-    return fourier_filtrado
+    return fourier_filtrado, borde_fourier
 
 def reconstruir_contorno(contorno_fourier, shift: bool = True):
     # Revertir el FFT shift si fue aplicado
@@ -140,20 +144,28 @@ def contorno2fourier_invariante(borde, n_descriptores: int):
 
     return fourier_filtrado
 
-def Hu_moments(contorno):
+def Hu_moments(contorno, label, plot:bool = False):
     # Calcular los Momentos de Hu
     hu_moment = cv2.HuMoments(cv2.moments(contorno)).flatten()
 
     # Aplicar logaritmo a los momentos de Hu para su mejor visualización
     log_hu_mo = -np.sign(hu_moment) * np.log10(np.abs(hu_moment))
-    # Los descriptores de Hu pueden tener valores extremadamente pequeños, por lo que se toma el logaritmo de los valores absolutos para normalizar y mejorar la visualización.
 
-    # Mostrar los valores de los descriptores de Hu
-    print("Hu Moments:")
-    for i, moment in enumerate(log_hu_mo):
-        print(f"Hu Moment {i+1}: {moment}")
-    # Imprime los valores de los siete momentos de Hu en la consola
+    # Crear un diccionario para almacenar los momentos de Hu con el label
+    momentos_dict = {
+        'label': label,
+        'Hu_Moments': {f'Hu_Moment_{i+1}': log_hu_mo[i] for i in range(len(log_hu_mo))}
+    }
+    if plot:
 
+        # Mostrar los valores de los descriptores de Hu en consola
+        print(f"Label: {label}")
+        print("Hu Moments:")
+        for i, moment in enumerate(log_hu_mo):
+            print(f"Hu Moment {i+1}: {moment}")
+
+    return momentos_dict  # Retornar el diccionario con los momentos de Hu y el label
+"""
 # Leer la imagen
 lista_paths = lista_de_paths(path_folder= 'PIByB_4')
 path = lista_paths[0]
@@ -201,5 +213,5 @@ else:
         print("No se encontraron contornos.")
     
 
-
+"""
 
