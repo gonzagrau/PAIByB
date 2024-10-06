@@ -33,7 +33,7 @@ def caracteristicas_fourier(imagen,plot:bool = False):
     # Almacenar los resultados en un diccionario
     resultados = {
         'Energía Total': energia,
-        'Potencia Total': mag_esp,
+        #'Potencia Total': mag_esp,
         'Energía Primer Cuadrante': ener_1erC,       
         'Energía Segundo Cuadrante': ener_2doC,       
         'Energía Tercer Cuadrante': ener_3erC,
@@ -56,8 +56,9 @@ def caracteristicas_fourier(imagen,plot:bool = False):
         plt.show()
     return resultados,f_shift
 
-def caracteristicas_wavelets(imagen,wavelet:str = 'haar',plot:bool = False, mode: str = 'periodization',Level:int = 2,Plot_all_levels:bool = False ):
-    coef = pywt.wavedec2(imagen, wavelet=wavelet, level=Level,mode = mode) 
+def caracteristicas_wavelets(imagen, wavelet: str = 'haar', plot: bool = False, mode: str = 'periodization', Level: int = 2, Plot_all_levels: bool = False):
+    # Aplicar la transformada wavelets a la imagen
+    coef = pywt.wavedec2(imagen, wavelet=wavelet, level=Level, mode=mode)
     cA = coef[0]  # Coeficientes de aproximación (bajas frecuencias)
     cHVD = coef[1:]  # Coeficientes de detalles (altas frecuencias)
 
@@ -69,28 +70,27 @@ def caracteristicas_wavelets(imagen,wavelet:str = 'haar',plot:bool = False, mode
         'Energía Aproximación': energia_approx
     }
 
-    # Calcular las energías de los detalles (horizontal, vertical, diagonal) por cada nivel
+    # Aplanar las energías de los detalles (horizontal, vertical, diagonal) por cada nivel
     for i, (cH, cV, cD) in enumerate(cHVD):
         energia_H = np.sum(np.square(cH))  # Energía del detalle horizontal
         energia_V = np.sum(np.square(cV))  # Energía del detalle vertical
         energia_D = np.sum(np.square(cD))  # Energía del detalle diagonal
 
-        # Agregar la energía por nivel al diccionario
-        energy_dict[f'Nivel {i+1}'] = {
-            'Energía Horizontal': energia_H,
-            'Energía Vertical': energia_V,
-            'Energía Diagonal': energia_D
-        }
-        #ploteo 
+        # Agregar la energía por nivel al diccionario de forma aplanada
+        energy_dict[f'Nivel {i+1} Energía Horizontal'] = energia_H
+        energy_dict[f'Nivel {i+1} Energía Vertical'] = energia_V
+        energy_dict[f'Nivel {i+1} Energía Diagonal'] = energia_D
+
+    # Ploteo si es necesario
     if Plot_all_levels:
-       coeff_arr,coefs_slices = pywt.coeffs_to_array(coef,)
-       plt.figure(figsize=(20,20))
-       plt.imshow(coeff_arr,cmap = plt.cm.gray )
-       plt.title(f'Level {Level} de wavelets')
-       plt.show()
+        coeff_arr, _ = pywt.coeffs_to_array(coef)
+        plt.figure(figsize=(10, 10))
+        plt.imshow(coeff_arr, cmap=plt.cm.gray)
+        plt.title(f'Coeficientes de wavelets nivel {Level}')
+        plt.axis('off')
+        plt.show()
 
-    return energy_dict,coef
-
+    return energy_dict, coef
 def imagen_gabor(imagen,ksize:int = 31, sigma: float = 4.0, theta: float =0, lambd:float = 10.0, gamma: float =0.5, ps: float =0):
 #     ksize (Kernel Size):
 
