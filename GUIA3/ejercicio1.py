@@ -81,6 +81,8 @@ class Registracion:
         self.matches_filtrados = None
         self.homografia = None
         self.mask = None
+        self.imagen_registrada = None  
+        self.coincidencias = None 
 
     def calcular_matches(self):
         """
@@ -97,7 +99,14 @@ class Registracion:
 
         self.matches = matches  # Guardar los matches originales
 
-        print(f"Matches encontrados: {len(self.matches_filtrados)}")
+        #print(f"Matches encontrados: {len(self.matches_filtrados)}")
+    
+    def dibujar_matches(self):
+        """
+        Métodp para generar una imagen que representa los matches de puntos calve filtrados 
+        """
+        self.coincidencias = cv2.drawMatches(self.img_mov.imagen, self.img_mov.puntos_clave,  self.img_ref.imagen, self.img_ref.puntos_clave, self.matches_filtrados, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+
 
     def calcular_homografia(self):
         """
@@ -111,7 +120,7 @@ class Registracion:
             # Calcular la matriz de homografía utilizando RANSAC para eliminar outliers
             self.homografia, self.mask = cv2.findHomography(p_movil, p_ref, cv2.RANSAC, 5.0)
 
-            print(f"Homografía calculada:\n{self.homografia}")
+            #print(f"Homografía calculada:\n{self.homografia}")
         else:
             raise ValueError("No hay suficientes matches filtrados para calcular la homografía.")
 
@@ -121,8 +130,8 @@ class Registracion:
         """
         if self.homografia is not None:
             alto, ancho = self.img_ref.imagen.shape
-            img_registrada = cv2.warpPerspective(self.img_mov.imagen, self.homografia, (ancho, alto))
-            return img_registrada
+            self.imagen_registrada = cv2.warpPerspective(self.img_mov.imagen, self.homografia, (ancho, alto))
+            return self.imagen_registrada
         else:
             raise ValueError("La homografía no ha sido calculada.")
 
@@ -158,22 +167,60 @@ def agrupar_paths(paths):
                 dos_digitos.append(path)
 
     return un_digito, dos_digitos
-#extrigo paths 
-lista_paths = lista_de_paths('PAIByB-5')
-# Agrupar los paths
-un_digito, dos_digitos = agrupar_paths(lista_paths)
-#aplico mi clase a cada path 
-un_digito_imgs = [Imagen(image) for image in un_digito ]
-dos_digito_imgs = [Imagen(image) for image in dos_digitos ]
+def main():
+    #extrigo paths 
+    lista_paths = lista_de_paths('PAIByB-5')
+    # Agrupar los paths
+    un_digito, dos_digitos = agrupar_paths(lista_paths)
+    #aplico mi clase a cada path 
+    un_digito_imgs = [Imagen(image) for image in un_digito ]
+    dos_digito_imgs = [Imagen(image) for image in dos_digitos ]
+    for i in range(1,len(un_digito)):
+        # Crea una instancia de Registracion
+        prueba = Registracion(imagen_referencia=un_digito_imgs[0], imagen_movil=un_digito_imgs[i])
 
-prueba = Registracion(imagen_referencia=un_digito_imgs[0], imagen_movil= un_digito_imgs[1])
+        # Calcula los matches entre la imagen de referencia y la imagen móvil
+        prueba.calcular_matches()
 
-# imag_regis = prueba.registrar_imagen()
-# cv2.imshow('Puntos clave', imag_regis)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+        # Calcula las coincidencias 
+        prueba.dibujar_matches()
+
+        # Calcula la homografía basada en los matches filtrados
+        prueba.calcular_homografia()
+
+        # Registra la imagen móvil con respecto a la de referencia
+        prueba.registrar_imagen()
+
+        #grafico 
+
+        plt.figure(figsize=(20, 5))  # Ancho mayor para acomodar las tres imágenes
 
 
+        plt.subplot(1, 4, 1)
+        plt.imshow(prueba.img_ref.imagen, cmap='gray')
+        plt.title(f'Imagen ref {prueba.img_ref.nombre}')
+        plt.axis('off')
+
+
+        plt.subplot(1, 4, 2)
+        plt.imshow(prueba.img_mov.imagen, cmap='gray')
+        plt.title(f'Imeagen Movil {prueba.img_mov.nombre}')
+        plt.axis('off')
+
+        plt.subplot(1, 4, 3)
+        plt.imshow(prueba.imagen_registrada, cmap='gray')
+        plt.title('imagen registrada')
+        plt.axis('off')
+
+        plt.subplot(1,4,4)
+        plt.imshow(prueba.coincidencias,cmap= 'gray')
+        plt.title('coincidencias')
+        plt.axis('off')
+        # Mostrar el gráfico
+        plt.show()
+        
+if __name__ == '__main__':
+    main()
 # un digito:
 # 0 imagen de rodilla normal 
 # 1 imagen rodilla rotada aprox +30
