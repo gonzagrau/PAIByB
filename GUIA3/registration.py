@@ -1,25 +1,10 @@
-    # 1- Registre las imágenes contenidas en las carpetas 
-    # I. Realice una registración basada en características evaluando los resultados con las métricas 
-    # de la GUIA I de la imágenes contenidas en “PAIByB-5”¿Qué conclusiones puede sacar al 
-    # respecto? 
-    # II. Realice una registración basada en características evaluando los resultados con las métricas 
-    # de la GUIA I de la imagenes contenidas en “PAIByB-6”¿Qué conclusiones puede sacar al 
-    # respecto? 
-    # III. Realice una registración basada en características evaluando los resultados con las métricas 
-    # de la GUIA I de la imagenes contenidas en “PAIByB-6” previamente pre-procesadas de la 
-    # manera que crea conveniente ¿Qué conclusiones puede sacar al respecto? 
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import os
-import re
-from skimage import io, transform, img_as_float
-from scipy import fftpack
-from scipy.optimize import minimize
-from scipy.optimize import differential_evolution
-from skimage.metrics import normalized_mutual_information as nmi
-from skimage.metrics import structural_similarity as ssim, mean_squared_error as mse
-from reg_toolkit import peak_SNR as PSNR, matchImg
+import pandas as pd
+from skimage.metrics import structural_similarity as ssim
+from reg_toolkit import lista_de_paths, agrupar_paths
+from reg_toolkit import peak_SNR as PSNR, matchImg, registracion_IM
 
 class Imagen:
     def __init__(self, image_path, feature_extractor='sift'):
@@ -113,7 +98,7 @@ class Registracion:
                  min_match_count=4,
                  ransac_thres=5.0):
 
-        assert modo in ['features', 'intensity'], "El modo debe ser 'features' o 'intensity'."
+        assert modo in ['features', 'intensidad'], "El modo debe ser 'features' o 'intensidad'."
         # Heredar las imágenes de la clase ImagenSIFT
         self.img_ref = imagen_referencia
         self.img_mov = imagen_movil
@@ -197,7 +182,7 @@ class Registracion:
         else:
             raise ValueError("La homografía no ha sido calculada.")
 
-    def plot_registration(self):
+    def plot_registracion(self):
         """
         (publico) - graficar la imagen de referencia, la imagen móvil y la imagen registrada.
         """
@@ -239,14 +224,7 @@ class Registracion:
 
         plt.show()
 
-        SSIM = ssim(self.img_ref.imagen,self.imagen_registrada)
-        Psnr = PSNR(self.img_ref.imagen,self.imagen_registrada)
-
-        print(f'El valor de SSIM es {SSIM} y el de PSNR es {Psnr}')
-
-        return SSIM, Psnr
-
-    def run_pipeline(self, plot=True):
+    def ejecutar_registracion(self, plot=True):
         """
         (publico) - ejecutar el pipeline de registración.
         """
@@ -257,20 +235,21 @@ class Registracion:
             self.calcular_homografia()
             self.registrar_imagen()
 
-        elif self.modo == 'intensity':
-            self.intensity_registration()
+        elif self.modo == 'intensidad':
+            self.registracion_CCN()
 
         if plot:
-            self.plot_registration()
+            self.plot_registracion()
+            self.calcular_metricas(verbose=True)
 
-    def intensity_registration(self,
-                                a=0.1,
-                                mode=2,
-                                flip_template=False,
-                                resize_template=False,
-                                cut_template=False,
-                                counterclockwise=True,
-                                b=0.4):
+    def registracion_CCN(self,
+                         a=0.1,
+                         mode=2,
+                         flip_template=False,
+                         resize_template=False,
+                         cut_template=False,
+                         counterclockwise=True,
+                         b=0.4):
         """
         Perform intensity-based registration on the reference and moving images.
         1) mode = 0: shifting
@@ -278,8 +257,8 @@ class Registracion:
         3) mode = 2: trim + rotation + shifting
         """
         
-        # For intensity-based registration, set the mode to 'intensity'
-        self.modo = 'intensity' 
+        # For intensity-based registration, set the mode to 'intensidad'
+        self.modo = 'intensidad'
         
         fixed_img = self.img_mov.imagen
         template = self.img_ref.imagen
@@ -291,41 +270,30 @@ class Registracion:
         # Ajustamos el tamaño de la imagen registrada para que coincida con la de referencia
         self.imagen_registrada = cv2.resize(self.imagen_registrada, (self.img_ref.imagen.shape[1], self.img_ref.imagen.shape[0]))
 
+    def calcular_metricas(self, verbose=True):
+        """
+        SSIM, MSE y PSNR
+        :return: valores numericos de SSIM, MSE y PSNR en formato DATAFRAME
+        """
+        SSIM_val = ssim(self.img_ref.imagen,self.imagen_registrada)
+        MSE_val = np.mean((self.img_ref.imagen - self.imagen_registrada)**2)
+        PSNR_val = PSNR(self.img_ref.imagen,self.imagen_registrada)
 
+        if verbose:
+            print(f"SSIM: {SSIM_val:.4f}")
+            print(f"MSE: {MSE_val:.4f}")
+            print(f"PSNR: {PSNR_val:.4f}")
 
-def lista_de_paths(path_folder:str):
-    # Define la carpeta base
-    carpeta_base = path_folder
-    lista_paths =[]
-    # Recorre todos los archivos dentro de la carpeta
-    for root, dirs, files in os.walk(carpeta_base):
-        for file in files:
-            # Obtiene el path absoluto del archivo
-            path_absoluto = os.path.join(root, file)
-        
-            lista_paths.append(path_absoluto)
-            # Obtiene el path relativo con respecto a la carpeta base
-            path_relativo = os.path.relpath(path_absoluto, carpeta_base)
-    return lista_paths
+        df = pd.DataFrame({'SSIM': [SSIM_val], 'MSE': [MSE_val], 'PSNR': [PSNR_val]})
+        return df
 
-def agrupar_paths(paths):
-    un_digito = []
-    dos_digitos = []
-
-    # Expresión regular para extraer el número
-    patron = re.compile(r'img-(\d+)\.tif')
-
-    for path in paths:
-        # Buscar el número en el nombre del archivo
-        match = patron.search(path)
-        if match:
-            numero = match.group(1)
-            if len(numero) == 1:
-                un_digito.append(path)
-            elif len(numero) == 2:
-                dos_digitos.append(path)
-
-    return un_digito, dos_digitos
+    def registracion_IM(self):
+        """
+        Aplica el metodo IM definido en reg_toolkit
+        :return: la imagen registrada
+        """
+        self.imagen_registrada = registracion_IM(self.img_mov.imagen, self.img_ref.imagen)
+        return self.imagen_registrada
 
 
 def main():
