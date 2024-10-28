@@ -7,7 +7,7 @@ from reg_toolkit import lista_de_paths, agrupar_paths
 from reg_toolkit import peak_SNR as PSNR, matchImg, registracion_IM
 
 class Imagen:
-    def __init__(self, image_path, feature_extractor='sift'):
+    def __init__(self, image_path, feature_extractor='sift', harris_thres=0.1):
         # Atributo: nombre de la imagen (extraído del path)
         self.nombre = image_path.split('.')[0]  # Sin la extensión del archivo
         
@@ -31,6 +31,7 @@ class Imagen:
             # Atributos: puntos clave (keypoints) y descriptores
             self.puntos_clave, self.descriptores = self._extraer_puntos_clave_orb()
         elif feature_extractor == 'harris':
+            self.harris_thres = harris_thres
             self.puntos_clave, self.descriptores = self._extraer_puntos_clave_harris()
 
     def show(self):
@@ -69,14 +70,15 @@ class Imagen:
         dst = cv2.dilate(dst, None)
 
         # Threshold for an optimal value, it may vary depending on the image.
-        threshold = 0.1 * dst.max()
+        threshold = self.harris_thres * dst.max()
         corner_coords = np.argwhere(dst > threshold)
 
         # Create keypoints
-        kp = [cv2.KeyPoint(x=float(coord[1]), y=float(coord[0]), size=1) for coord in corner_coords]
+        size = self.imagen.shape[2] if len(self.imagen.shape) == 3 else 1
+        kp = [cv2.KeyPoint(x=float(coord[1]), y=float(coord[0]), size=size) for coord in corner_coords]
 
-        # Extract descriptors
-        descriptores = np.array([dst[coord[0], coord[1]] for coord in corner_coords])
+        # Extract descriptors  # Extract descriptors
+        descriptores = np.array([[dst[coord[0], coord[1]]]/dst.max() for coord in corner_coords], dtype=np.float32)
 
         return kp, descriptores
 
