@@ -357,7 +357,7 @@ def registracion_IM(img_ref: np.ndarray, img_mov: np.ndarray) -> np.ndarray:
     # Aplicar la transformación óptima a la imagen movida
     aligned_img = transform.warp(img_mov, optimal_tform.inverse, order=3)  # Interpolación cúbica
 
-    return img_mov, img_ref, aligned_img
+    return aligned_img
 
 
 def lista_de_paths(path_folder:str):

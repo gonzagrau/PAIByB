@@ -13,6 +13,6 @@ def merge_notebooks(notebooks, output_file):
 
 
 if __name__ == '__main__':
-    notebooks = [f"ejercicio{i}.ipynb" for i in range(1, 4)]
+    notebooks = [f"ejercicio{i}.ipynb" for i in range(1, 5)]
     output_file = ('informe_GUIA3.ipynb')
     merge_notebooks(notebooks, output_file)

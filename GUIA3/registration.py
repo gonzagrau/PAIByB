@@ -311,10 +311,8 @@ class Registracion:
         Aplica el metodo IM definido en reg_toolkit
         :return: la imagen registrada
         """
-        img_mov, img_ref, img_reg = registracion_IM(self.img_mov.imagen, self.img_ref.imagen)
-        self.img_mov.imagen = img_mov.astype(self.img_mov.imagen.dtype)
-        self.img_ref.imagen = img_ref.astype(self.img_mov.imagen.dtype)
-        self.imagen_registrada = img_reg.astype(self.img_mov.imagen.dtype)
+        img_reg = registracion_IM(self.img_mov.imagen, self.img_ref.imagen)
+        self.imagen_registrada = np.uint8(img_reg)
 
         return self.imagen_registrada
     
