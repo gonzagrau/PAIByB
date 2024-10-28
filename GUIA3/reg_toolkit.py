@@ -223,3 +223,4 @@ def getMetrics4Group(fixed_img, registration_imgs, registered_imgs_names):
     metrics_df = pd.DataFrame(metrics_dic).T.rename({0: 'PSNR', 1: 'SSIM'}, axis='columns')
 
     return metrics_df
+

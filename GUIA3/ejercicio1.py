@@ -19,9 +19,10 @@ from scipy.optimize import minimize
 from scipy.optimize import differential_evolution
 from skimage.metrics import normalized_mutual_information as nmi
 from skimage.metrics import structural_similarity as ssim, mean_squared_error as mse
+from reg_toolkit import peak_SNR as PSNR
 
 class Imagen:
-    def __init__(self, image_path):
+    def __init__(self, image_path, feature_extractor='sift'):
         # Atributo: nombre de la imagen (extraído del path)
         self.nombre = image_path.split('.')[0]  # Sin la extensión del archivo
         
@@ -31,23 +32,65 @@ class Imagen:
         # Verificar si la imagen se cargó correctamente
         if self.imagen is None:
             raise ValueError(f"No se pudo cargar la imagen: {image_path}")
-        
-        # Inicializar SIFT
-        self.sift = cv2.SIFT_create()
-        
-        # Atributos: puntos clave (keypoints) y descriptores
-        self.puntos_clave, self.descriptores = self._extraer_puntos_clave()
-    
-    def _extraer_puntos_clave(self):
+
+        if feature_extractor == 'sift':
+            # Inicializar SIFT
+            self.sift = cv2.SIFT_create()
+
+            # Atributos: puntos clave (keypoints) y descriptores
+            self.puntos_clave, self.descriptores = self._extraer_puntos_clave_sift()
+        elif feature_extractor == 'orb':
+            # Inicializar ORB
+            self.orb = cv2.ORB_create()
+
+            # Atributos: puntos clave (keypoints) y descriptores
+            self.puntos_clave, self.descriptores = self._extraer_puntos_clave_orb()
+        elif feature_extractor == 'harris':
+            self.puntos_clave, self.descriptores = self._extraer_puntos_clave_harris()
+
+
+    def _extraer_puntos_clave_sift(self):
         """
-        Método interno para extraer puntos clave y descriptores usando SIFT.
+        (privado) -  extraer puntos clave y descriptores usando SIFT.
         """
         kp, descriptores = self.sift.detectAndCompute(self.imagen, mask = None)
         return kp, descriptores
-    
+
+    def _extraer_puntos_clave_orb(self):
+        """
+        (privado) -  extraer puntos clave y descriptores usando ORB.
+        """
+        kp = self.orb.detect(self.imagen, None)
+        kp, descriptores = self.orb.compute(self.imagen, kp)
+        return kp, descriptores
+
+    def _extraer_puntos_clave_harris(self):
+        """
+        (privado) - extraer puntos clave y descriptores usando detección de esquinas
+                    mediante el algoritmo de Harris
+        """
+
+        # Detect corners
+        dst = cv2.cornerHarris(self.imagen, block_size=2, ksize=3, k=0.04)
+
+        # Dilate corner image to enhance corner points
+        dst = cv2.dilate(dst, None)
+
+        # Threshold for an optimal value, it may vary depending on the image.
+        dst[dst < 0.01 * dst.max()] = 0
+
+        # Find keypoints
+        kp = np.argwhere(dst > 0.01 * dst.max())
+        descriptores = np.array([self.imagen[x[0], x[1]] for x in kp])
+
+        # Convert to cv2.KeyPoint
+        kp = [cv2.KeyPoint(x[1], x[0], 3) for x in kp]
+
+        return kp, descriptores
+
     def mostrar_puntos_clave(self):
         """
-        Método para mostrar la imagen con los puntos clave detectados.
+        (publico) - mostrar la imagen con los puntos clave detectados.
         """
         imagen_con_kp = cv2.drawKeypoints(self.imagen, self.puntos_clave, None)
         cv2.imshow('Puntos clave', imagen_con_kp)
@@ -56,7 +99,7 @@ class Imagen:
 
     def info(self):
         """
-        Método para imprimir la información de la imagen.
+        (publico) - imprimir la información de la imagen.
         """
         print(f"Nombre de la imagen: {self.nombre}")
         print(f"Número de puntos clave detectados: {len(self.puntos_clave)}")
@@ -86,7 +129,7 @@ class Registracion:
 
     def calcular_matches(self):
         """
-        Método para calcular los matches entre la imagen móvil y la imagen de referencia.
+        (publico) - calcular los matches entre la imagen móvil y la imagen de referencia.
         """
         # Realizar el emparejamiento utilizando K-NN con k=2
         matches = self.flann.knnMatch(self.img_mov.descriptores, self.img_ref.descriptores, k=2)
@@ -103,14 +146,20 @@ class Registracion:
     
     def dibujar_matches(self):
         """
-        Métodp para generar una imagen que representa los matches de puntos calve filtrados 
+        Para generar una imagen que representa los matches de puntos calve filtrados
         """
-        self.coincidencias = cv2.drawMatches(self.img_mov.imagen, self.img_mov.puntos_clave,  self.img_ref.imagen, self.img_ref.puntos_clave, self.matches_filtrados, None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+        self.coincidencias = cv2.drawMatches(self.img_mov.imagen,
+                                             self.img_mov.puntos_clave,
+                                             self.img_ref.imagen,
+                                             self.img_ref.puntos_clave,
+                                             self.matches_filtrados,
+                                             None,
+                                             flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
 
 
     def calcular_homografia(self):
         """
-        Método para calcular la homografía utilizando RANSAC.
+        (publico) - calcular la homografía utilizando RANSAC.
         """
         if len(self.matches_filtrados) > 4:
             # Extraer las coordenadas de los puntos clave coincidentes
@@ -126,7 +175,7 @@ class Registracion:
 
     def registrar_imagen(self):
         """
-        Método para registrar (alinear) la imagen móvil con respecto a la imagen de referencia usando la homografía.
+        (publico) - registrar (alinear) la imagen móvil con respecto a la imagen de referencia usando la homografía.
         """
         if self.homografia is not None:
             alto, ancho = self.img_ref.imagen.shape
@@ -134,6 +183,69 @@ class Registracion:
             return self.imagen_registrada
         else:
             raise ValueError("La homografía no ha sido calculada.")
+
+    def plot_registration(self):
+        """
+        (publico) - graficar la imagen de referencia, la imagen móvil y la imagen registrada.
+        """
+
+        plt.figure(figsize=(20, 5))
+
+        plt.subplot(1, 3, 1)
+        plt.imshow(self.img_ref.imagen, cmap='gray')
+        plt.title(f'imagen ref {self.img_ref.nombre}')
+        plt.axis('off')
+
+
+        plt.subplot(1, 3, 2)
+        plt.imshow(self.img_mov.imagen, cmap='gray')
+        plt.title(f'imagen movil {self.img_mov.nombre}')
+        plt.axis('off')
+
+        plt.subplot(1, 3, 3)
+        plt.imshow(self.imagen_registrada, cmap='gray')
+        plt.title('imagen registrada')
+        plt.axis('off')
+
+        # Mostrar el gráfico
+        plt.show()
+
+        plt.figure(figsize=(15, 10))
+        plt.imshow(self.coincidencias,cmap= 'gray')
+        plt.title(f'coincidencias {self.img_ref.nombre} con {self.img_mov.nombre}')
+        plt.axis('off')
+        plt.show()
+
+        plt.figure(figsize=(10,10))
+        # Diferencia entre imágenes
+        diferencia = cv2.absdiff(self.img_ref.imagen, self.imagen_registrada)
+        plt.imshow(diferencia, cmap='gray')
+        plt.title(f'Diferencia entre Imágenes para la registración de {self.img_mov.nombre}')
+        plt.axis('off')
+
+        plt.show()
+
+        SSIM = ssim(self.img_ref.imagen,self.imagen_registrada)
+        Psnr = PSNR(self.img_ref.imagen,self.imagen_registrada)
+
+        print(f'El valor de SSIM es {SSIM} y el de PSNR es {Psnr}')
+
+        return SSIM, Psnr
+
+    def run_pipeline(self, plot=True):
+        """
+        (publico) - ejecutar el pipeline de registración.
+        """
+        # Calcula los matches entre la imagen de referencia y la imagen móvil
+        self.calcular_matches()
+        self.calcular_homografia()
+        self.registrar_imagen()
+
+        # grafico
+        if plot:
+            self.dibujar_matches()
+            self.plot_registration()
+
 
 def lista_de_paths(path_folder:str):
     # Define la carpeta base
@@ -149,6 +261,7 @@ def lista_de_paths(path_folder:str):
             # Obtiene el path relativo con respecto a la carpeta base
             path_relativo = os.path.relpath(path_absoluto, carpeta_base)
     return lista_paths
+
 def agrupar_paths(paths):
     un_digito = []
     dos_digitos = []
@@ -167,6 +280,8 @@ def agrupar_paths(paths):
                 dos_digitos.append(path)
 
     return un_digito, dos_digitos
+
+
 def main():
     #extrigo paths 
     lista_paths = lista_de_paths('PAIByB-5')
@@ -177,43 +292,43 @@ def main():
     dos_digito_imgs = [Imagen(image) for image in dos_digitos ]
     for i in range(1,len(un_digito)):
         # Crea una instancia de Registracion
-        prueba = Registracion(imagen_referencia=un_digito_imgs[0], imagen_movil=un_digito_imgs[i])
+        prueba_reg = Registracion(imagen_referencia=un_digito_imgs[0], imagen_movil=un_digito_imgs[i])
 
         # Calcula los matches entre la imagen de referencia y la imagen móvil
-        prueba.calcular_matches()
+        prueba_reg.calcular_matches()
 
-        # Calcula las coincidencias 
-        prueba.dibujar_matches()
+        # Calcula las coincidencias
+        prueba_reg.dibujar_matches()
 
         # Calcula la homografía basada en los matches filtrados
-        prueba.calcular_homografia()
+        prueba_reg.calcular_homografia()
 
         # Registra la imagen móvil con respecto a la de referencia
-        prueba.registrar_imagen()
+        prueba_reg.registrar_imagen()
 
-        #grafico 
+        #grafico
 
         plt.figure(figsize=(20, 5))  # Ancho mayor para acomodar las tres imágenes
 
 
         plt.subplot(1, 4, 1)
-        plt.imshow(prueba.img_ref.imagen, cmap='gray')
-        plt.title(f'Imagen ref {prueba.img_ref.nombre}')
+        plt.imshow(prueba_reg.img_ref.imagen, cmap='gray')
+        plt.title(f'Imagen ref {prueba_reg.img_ref.nombre}')
         plt.axis('off')
 
 
         plt.subplot(1, 4, 2)
-        plt.imshow(prueba.img_mov.imagen, cmap='gray')
-        plt.title(f'Imeagen Movil {prueba.img_mov.nombre}')
+        plt.imshow(prueba_reg.img_mov.imagen, cmap='gray')
+        plt.title(f'Imeagen Movil {prueba_reg.img_mov.nombre}')
         plt.axis('off')
 
         plt.subplot(1, 4, 3)
-        plt.imshow(prueba.imagen_registrada, cmap='gray')
+        plt.imshow(prueba_reg.imagen_registrada, cmap='gray')
         plt.title('imagen registrada')
         plt.axis('off')
 
         plt.subplot(1,4,4)
-        plt.imshow(prueba.coincidencias,cmap= 'gray')
+        plt.imshow(prueba_reg.coincidencias,cmap= 'gray')
         plt.title('coincidencias')
         plt.axis('off')
         # Mostrar el gráfico
