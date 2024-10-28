@@ -33,6 +33,14 @@ class Imagen:
         elif feature_extractor == 'harris':
             self.puntos_clave, self.descriptores = self._extraer_puntos_clave_harris()
 
+    def show(self):
+        """
+        (publico) - mostrar la imagen en una ventana.
+        """
+        plt.imshow(self.imagen, cmap='gray', vmin=0, vmax=255)
+        plt.title(self.nombre)
+        plt.axis('off')
+        plt.show()
 
     def _extraer_puntos_clave_sift(self):
         """
@@ -77,9 +85,10 @@ class Imagen:
         (publico) - mostrar la imagen con los puntos clave detectados.
         """
         imagen_con_kp = cv2.drawKeypoints(self.imagen, self.puntos_clave, None)
-        cv2.imshow('Puntos clave', imagen_con_kp)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        plt.imshow(imagen_con_kp)
+        plt.title(f"Puntos clave detectados en {self.nombre}")
+        plt.axis('off')
+        plt.show()
 
     def info(self):
         """
