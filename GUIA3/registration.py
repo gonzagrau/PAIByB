@@ -279,8 +279,8 @@ class Registracion:
         # For intensity-based registration, set the mode to 'intensidad'
         self.modo = 'intensidad'
         
-        fixed_img = self.img_mov.imagen
-        template = self.img_ref.imagen
+        fixed_img = self.img_ref.imagen
+        template = self.img_mov.imagen
 
         # Perform intensity-based registration
         registered_img, _ = matchImg(fixed_img, template, a, mode, flip_template, resize_template, cut_template, counterclockwise, b)
