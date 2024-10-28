@@ -19,7 +19,7 @@ from scipy.optimize import minimize
 from scipy.optimize import differential_evolution
 from skimage.metrics import normalized_mutual_information as nmi
 from skimage.metrics import structural_similarity as ssim, mean_squared_error as mse
-from reg_toolkit import peak_SNR as PSNR
+from reg_toolkit import peak_SNR as PSNR, matchImg
 
 class Imagen:
     def __init__(self, image_path, feature_extractor='sift'):
@@ -105,15 +105,19 @@ class Imagen:
         print(f"Descriptores: {self.descriptores.shape if self.descriptores is not None else 'No descriptores'}")
 
 class Registracion:
-    def __init__(self, imagen_referencia: Imagen,
+    def __init__(self,
+                 imagen_referencia: Imagen,
                  imagen_movil: Imagen,
+                 modo: str = 'features',
                  lowe_threshold: float = 0.7,
                  min_match_count=4,
                  ransac_thres=5.0):
 
+        assert modo in ['features', 'intensity'], "El modo debe ser 'features' o 'intensity'."
         # Heredar las imágenes de la clase ImagenSIFT
         self.img_ref = imagen_referencia
         self.img_mov = imagen_movil
+        self.modo = modo
 
         # Definir los parámetros del emparejador FLANN
         FLANN_INDEX_KDTREE = 1
@@ -125,7 +129,7 @@ class Registracion:
 
         # Atributos: matches, homografía y máscara
         self.lowe_threshold = lowe_threshold
-        self.ransac_thres = 5.0
+        self.ransac_thres = ransac_thres
         self.min_match_count = min_match_count
         self.matches = None
         self.matches_filtrados = None
@@ -245,17 +249,40 @@ class Registracion:
         """
         (publico) - ejecutar el pipeline de registración.
         """
-        # Calcula los matches entre la imagen de referencia y la imagen móvil
-        self.calcular_matches()
+        if self.modo == 'features':
+            self.calcular_matches()
+            if plot:
+                self.dibujar_matches()
+            self.calcular_homografia()
+            self.registrar_imagen()
 
-        if plot:
-            self.dibujar_matches()
-
-        self.calcular_homografia()
-        self.registrar_imagen()
+        elif self.modo == 'intensity':
+            self.intensity_registration()
 
         if plot:
             self.plot_registration()
+
+    def intensity_registration(self,
+                                a=0.1,
+                                mode=2,
+                                flip_template=False,
+                                resize_template=False,
+                                cut_template=False,
+                                counterclockwise=True,
+                                b=0.4):
+        """
+        Perform intensity-based registration on the reference and moving images.
+        1) mode = 0: shifting
+        2) mode = 1: rotation + shifting
+        3) mode = 2: trim + rotation + shifting
+        """
+        fixed_img = self.img_ref.imagen
+        template = self.img_mov.imagen
+
+        # Perform intensity-based registration
+        registered_img, _ = matchImg(fixed_img, template, a, mode, flip_template, resize_template, cut_template, counterclockwise, b)
+        self.imagen_registrada = registered_img
+
 
 
 def lista_de_paths(path_folder:str):

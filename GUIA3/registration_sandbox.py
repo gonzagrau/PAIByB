@@ -24,20 +24,16 @@ def main():
     print(un_digito)
     print(un_digito)
     for img in dos_digito_imgs[1:]:
-        try:
-            print('\n' + 80 * '_')
-            print(f'Imagen {img.nombre}')
-            # Crea una instancia de Registracion utilizando Harris como descriptor
-            prueba = Registracion(imagen_referencia=dos_digito_imgs[0],
-                                  imagen_movil=img,
-                                  lowe_threshold=1,
-                                  ransac_thres=0,
-                                  min_match_count=4)
-            prueba.run_pipeline()
-        except Exception as e:
-            print(f'Error en la imagen {img.nombre}')
-            print(e)
-            continue
+        print('\n' + 80 * '_')
+        print(f'Imagen {img.nombre}')
+        # Crea una instancia de Registracion utilizando Harris como descriptor
+        prueba = Registracion(imagen_referencia=dos_digito_imgs[0],
+                              imagen_movil=img,
+                              lowe_threshold=1,
+                              ransac_thres=0,
+                              modo='intensity',
+                              min_match_count=4)
+        prueba.run_pipeline()
 
 
 if __name__ == '__main__':
