@@ -7,16 +7,16 @@ from reg_toolkit import lista_de_paths, agrupar_paths
 from reg_toolkit import peak_SNR as PSNR, matchImg, registracion_IM
 
 class Imagen:
-    def __init__(self, image_path, feature_extractor='sift', harris_thres=0.1):
+    def __init__(self, image, feature_extractor='sift', harris_thres=0.1, nombre=''):
         # Atributo: nombre de la imagen (extraído del path)
-        self.nombre = image_path.split('.')[0]  # Sin la extensión del archivo
-        
-        # Atributo: imagen leída con OpenCV
-        self.imagen = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        
-        # Verificar si la imagen se cargó correctamente
-        if self.imagen is None:
-            raise ValueError(f"No se pudo cargar la imagen: {image_path}")
+        if type(image) == str:
+            self.nombre = image.split('.')[0]  # Sin la extensión del archivo
+
+            # Atributo: imagen leída con OpenCV
+            self.imagen = cv2.imread(image, cv2.IMREAD_GRAYSCALE)
+        else:
+            self.imagen = image
+            self.nombre = nombre
 
         # Validad extractor de caracteristicas
         assert feature_extractor in {'sift', 'orb', 'harris'},\
@@ -119,8 +119,15 @@ class Registracion:
 
         assert modo in ['features', 'intensidad'], "El modo debe ser 'features' o 'intensidad'."
         # Heredar las imágenes de la clase ImagenSIFT
-        self.img_ref = imagen_referencia
-        self.img_mov = imagen_movil
+        if type(imagen_referencia) == Imagen:
+            self.img_ref = imagen_referencia
+        else:
+            self.img_ref = Imagen(imagen_referencia, nombre='Imagen de Referencia')
+        if type(imagen_movil) == Imagen:
+            self.img_mov = imagen_movil
+        else:
+            self.img_mov = Imagen(imagen_movil, nombre='Imagen Móvil')
+
         self.modo = modo
 
         # Definir los parámetros del emparejador FLANN
@@ -210,18 +217,18 @@ class Registracion:
 
         plt.subplot(1, 3, 1)
         plt.imshow(self.img_ref.imagen, cmap='gray')
-        plt.title(f'imagen ref {self.img_ref.nombre}')
+        plt.title(f'Imagen de referencia')
         plt.axis('off')
 
 
         plt.subplot(1, 3, 2)
         plt.imshow(self.img_mov.imagen, cmap='gray')
-        plt.title(f'imagen movil {self.img_mov.nombre}')
+        plt.title(f'Imagen móvil')
         plt.axis('off')
 
         plt.subplot(1, 3, 3)
         plt.imshow(self.imagen_registrada, cmap='gray')
-        plt.title('imagen registrada')
+        plt.title('Imagen registrada')
         plt.axis('off')
 
         plt.show()
