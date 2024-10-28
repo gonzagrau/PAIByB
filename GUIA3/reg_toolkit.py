@@ -239,9 +239,9 @@ def registracion_IM(img_ref: np.ndarray, img_mov: np.ndarray) -> np.ndarray:
 
     # Opcional: Redimensionar las imágenes si son demasiado grandes para acelerar la optimización
     # Puedes descomentar las siguientes líneas si es necesario
-    # img_ref = transform.resize(img_ref, (256, 256), anti_aliasing=True)
-    # img_mov = transform.resize(img_mov, (256, 256), anti_aliasing=True)
+    img_mov = transform.resize(img_mov, img_ref.shape, anti_aliasing=True)
 
+    # Redimensionar la imagen movil para que su tamaño coincida con la de referencia
     # ---------------------------------------------
     # Paso 2: Implementación de la Información Mutua (MI)
     # ---------------------------------------------
@@ -357,7 +357,7 @@ def registracion_IM(img_ref: np.ndarray, img_mov: np.ndarray) -> np.ndarray:
     # Aplicar la transformación óptima a la imagen movida
     aligned_img = transform.warp(img_mov, optimal_tform.inverse, order=3)  # Interpolación cúbica
 
-    return aligned_img
+    return img_mov, img_ref, aligned_img
 
 
 def lista_de_paths(path_folder:str):

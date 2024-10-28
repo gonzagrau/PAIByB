@@ -18,21 +18,13 @@ class Imagen:
         if self.imagen is None:
             raise ValueError(f"No se pudo cargar la imagen: {image_path}")
 
-        if feature_extractor == 'sift':
-            # Inicializar SIFT
-            self.sift = cv2.SIFT_create()
+        # Validad extractor de caracteristicas
+        assert feature_extractor in {'sift', 'orb', 'harris'},\
+            "El extractor de características debe ser 'sift', 'orb' o 'harris'."
+        self.feature_extractor = feature_extractor
+        self.extraer_puntos_clave()
+        # Atributos: puntos clave y descriptores
 
-            # Atributos: puntos clave (keypoints) y descriptores
-            self.puntos_clave, self.descriptores = self._extraer_puntos_clave_sift()
-        elif feature_extractor == 'orb':
-            # Inicializar ORB
-            self.orb = cv2.ORB_create()
-
-            # Atributos: puntos clave (keypoints) y descriptores
-            self.puntos_clave, self.descriptores = self._extraer_puntos_clave_orb()
-        elif feature_extractor == 'harris':
-            self.harris_thres = harris_thres
-            self.puntos_clave, self.descriptores = self._extraer_puntos_clave_harris()
 
     def show(self):
         """
@@ -47,6 +39,7 @@ class Imagen:
         """
         (privado) -  extraer puntos clave y descriptores usando SIFT.
         """
+        self.sift = cv2.SIFT_create()
         kp, descriptores = self.sift.detectAndCompute(self.imagen, mask = None)
         return kp, descriptores
 
@@ -54,6 +47,7 @@ class Imagen:
         """
         (privado) -  extraer puntos clave y descriptores usando ORB.
         """
+        self.orb = cv2.ORB_create()
         kp = self.orb.detect(self.imagen, None)
         kp, descriptores = self.orb.compute(self.imagen, kp)
         return kp, descriptores
@@ -81,6 +75,20 @@ class Imagen:
         descriptores = np.array([[dst[coord[0], coord[1]]]/dst.max() for coord in corner_coords], dtype=np.float32)
 
         return kp, descriptores
+
+    def extraer_puntos_clave(self):
+        """
+        (publico) - extraer los puntos clave de la imagen.
+        """
+        if self.feature_extractor == 'sift':
+            self.puntos_clave, self.descriptores = self._extraer_puntos_clave_sift()
+
+        elif self.feature_extractor == 'orb':
+            self.puntos_clave, self.descriptores = self._extraer_puntos_clave_orb()
+
+        elif self.feature_extractor == 'harris':
+            self.puntos_clave, self.descriptores = self._extraer_puntos_clave_harris()
+
 
     def mostrar_puntos_clave(self):
         """
@@ -303,10 +311,13 @@ class Registracion:
         Aplica el metodo IM definido en reg_toolkit
         :return: la imagen registrada
         """
-        self.imagen_registrada = registracion_IM(self.img_mov.imagen, self.img_ref.imagen)
+        img_mov, img_ref, img_reg = registracion_IM(self.img_mov.imagen, self.img_ref.imagen)
+        self.img_mov.imagen = img_mov.astype(self.img_mov.imagen.dtype)
+        self.img_ref.imagen = img_ref.astype(self.img_mov.imagen.dtype)
+        self.imagen_registrada = img_reg.astype(self.img_mov.imagen.dtype)
+
         return self.imagen_registrada
-
-
+    
 def main():
     #extrigo paths 
     lista_paths = lista_de_paths('PAIByB-5')
