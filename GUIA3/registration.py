@@ -220,17 +220,18 @@ class Registracion:
         plt.title('imagen registrada')
         plt.axis('off')
 
-        # Mostrar el gráfico
         plt.show()
 
-        plt.figure(figsize=(15, 10))
-        plt.imshow(self.coincidencias,cmap= 'gray')
-        plt.title(f'coincidencias {self.img_ref.nombre} con {self.img_mov.nombre}')
-        plt.axis('off')
-        plt.show()
+        # Coincidencias
+        if self.modo == 'features':
+            plt.figure(figsize=(15, 10))
+            plt.imshow(self.coincidencias,cmap= 'gray')
+            plt.title(f'coincidencias {self.img_ref.nombre} con {self.img_mov.nombre}')
+            plt.axis('off')
+            plt.show()
 
-        plt.figure(figsize=(10,10))
         # Diferencia entre imágenes
+        plt.figure(figsize=(10,10))
         diferencia = cv2.absdiff(self.img_ref.imagen, self.imagen_registrada)
         plt.imshow(diferencia, cmap='gray')
         plt.title(f'Diferencia entre Imágenes para la registración de {self.img_mov.nombre}')
@@ -276,12 +277,19 @@ class Registracion:
         2) mode = 1: rotation + shifting
         3) mode = 2: trim + rotation + shifting
         """
-        fixed_img = self.img_ref.imagen
-        template = self.img_mov.imagen
+        
+        # For intensity-based registration, set the mode to 'intensity'
+        self.modo = 'intensity' 
+        
+        fixed_img = self.img_mov.imagen
+        template = self.img_ref.imagen
 
         # Perform intensity-based registration
         registered_img, _ = matchImg(fixed_img, template, a, mode, flip_template, resize_template, cut_template, counterclockwise, b)
         self.imagen_registrada = registered_img
+
+        # Ajustamos el tamaño de la imagen registrada para que coincida con la de referencia
+        self.imagen_registrada = cv2.resize(self.imagen_registrada, (self.img_ref.imagen.shape[1], self.img_ref.imagen.shape[0]))
 
 
 
