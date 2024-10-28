@@ -69,22 +69,21 @@ class Imagen:
         (privado) - extraer puntos clave y descriptores usando detección de esquinas
                     mediante el algoritmo de Harris
         """
-
         # Detect corners
-        dst = cv2.cornerHarris(self.imagen, block_size=2, ksize=3, k=0.04)
+        dst = cv2.cornerHarris(self.imagen, blockSize=2, ksize=3, k=0.04)
 
         # Dilate corner image to enhance corner points
         dst = cv2.dilate(dst, None)
 
         # Threshold for an optimal value, it may vary depending on the image.
-        dst[dst < 0.01 * dst.max()] = 0
+        threshold = 0.1 * dst.max()
+        corner_coords = np.argwhere(dst > threshold)
 
-        # Find keypoints
-        kp = np.argwhere(dst > 0.01 * dst.max())
-        descriptores = np.array([self.imagen[x[0], x[1]] for x in kp])
+        # Create keypoints
+        kp = [cv2.KeyPoint(x=float(coord[1]), y=float(coord[0]), size=1) for coord in corner_coords]
 
-        # Convert to cv2.KeyPoint
-        kp = [cv2.KeyPoint(x[1], x[0], 3) for x in kp]
+        # Extract descriptors
+        descriptores = np.array([dst[coord[0], coord[1]] for coord in corner_coords])
 
         return kp, descriptores
 
@@ -106,7 +105,12 @@ class Imagen:
         print(f"Descriptores: {self.descriptores.shape if self.descriptores is not None else 'No descriptores'}")
 
 class Registracion:
-    def __init__(self, imagen_referencia: Imagen, imagen_movil: Imagen):
+    def __init__(self, imagen_referencia: Imagen,
+                 imagen_movil: Imagen,
+                 lowe_threshold: float = 0.7,
+                 min_match_count=4,
+                 ransac_thres=5.0):
+
         # Heredar las imágenes de la clase ImagenSIFT
         self.img_ref = imagen_referencia
         self.img_mov = imagen_movil
@@ -120,6 +124,9 @@ class Registracion:
         self.flann = cv2.FlannBasedMatcher(i_params, b_params)
 
         # Atributos: matches, homografía y máscara
+        self.lowe_threshold = lowe_threshold
+        self.ransac_thres = 5.0
+        self.min_match_count = min_match_count
         self.matches = None
         self.matches_filtrados = None
         self.homografia = None
@@ -137,12 +144,14 @@ class Registracion:
         # Filtrar los matches usando la técnica de Lowe (ratio test)
         self.matches_filtrados = []
         for m, n in matches:
-            if m.distance < 0.7 * n.distance:
+            if m.distance < self.lowe_threshold * n.distance:
                 self.matches_filtrados.append(m)
+
+        # self.matches_filtrados = matches
 
         self.matches = matches  # Guardar los matches originales
 
-        #print(f"Matches encontrados: {len(self.matches_filtrados)}")
+        print(f"Matches encontrados: {len(self.matches_filtrados)}")
     
     def dibujar_matches(self):
         """
@@ -161,13 +170,13 @@ class Registracion:
         """
         (publico) - calcular la homografía utilizando RANSAC.
         """
-        if len(self.matches_filtrados) > 4:
+        if len(self.matches_filtrados) > self.min_match_count:
             # Extraer las coordenadas de los puntos clave coincidentes
             p_ref = np.float32([self.img_ref.puntos_clave[m.trainIdx].pt for m in self.matches_filtrados]).reshape(-1, 1, 2)
             p_movil = np.float32([self.img_mov.puntos_clave[m.queryIdx].pt for m in self.matches_filtrados]).reshape(-1, 1, 2)
 
             # Calcular la matriz de homografía utilizando RANSAC para eliminar outliers
-            self.homografia, self.mask = cv2.findHomography(p_movil, p_ref, cv2.RANSAC, 5.0)
+            self.homografia, self.mask = cv2.findHomography(p_movil, p_ref, cv2.RANSAC, self.ransac_thres)
 
             #print(f"Homografía calculada:\n{self.homografia}")
         else:
@@ -238,12 +247,14 @@ class Registracion:
         """
         # Calcula los matches entre la imagen de referencia y la imagen móvil
         self.calcular_matches()
+
+        if plot:
+            self.dibujar_matches()
+
         self.calcular_homografia()
         self.registrar_imagen()
 
-        # grafico
         if plot:
-            self.dibujar_matches()
             self.plot_registration()
 
 
