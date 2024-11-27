@@ -1,11 +1,13 @@
 import os
 import gdown
 import tensorflow as tf
+from matplotlib import pyplot as plt
 from typing import Tuple, List, Any
 
 
 URL_TEMPLATE = r'https://drive.google.com/uc?id={}'
-DATASET_URL = URL_TEMPLATE.format('1qakYj0HsbH-823ooJpxJ5SHldLumBdK4')
+DATASET_URL = URL_TEMPLATE.format('1FzsBjfNG6Njt7YnXLc_bgSEb11AEYOQD')
+TFRECORD_FILE = 'train_img_mask_label_id.tfrecord'
 
 
 def parse_example(example_proto: Any) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
@@ -35,7 +37,7 @@ def parse_example(example_proto: Any) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, 
     return image, mask, label, image_id
 
 
-def load_dataset(tfrecord_file):
+def load_dataset(tfrecord_file: str = TFRECORD_FILE) -> tf.data.TFRecordDataset:
     """
     Load a dataset from a TFRecord file.
     If the file does not exist, it will be downloaded.
@@ -48,14 +50,14 @@ def load_dataset(tfrecord_file):
     """
     if not os.path.exists(tfrecord_file):
         gdown.download(DATASET_URL, tfrecord_file, quiet=False)
-    dataset = tf.data.TFRecordDataset(tfrecord_file)
+
+    dataset = tf.data.TFRecordDataset(tfrecord_file, compression_type="GZIP")
     dataset = dataset.map(parse_example)
     return dataset
 
 
 def main():
-    tfrecord_file = 'dataset.tfrecord'
-    dataset = load_dataset(tfrecord_file)
+    dataset = load_dataset()
     dataset = dataset.shuffle(buffer_size=1000, reshuffle_each_iteration=True)
 
     # Show an example
@@ -77,5 +79,5 @@ def main():
         plt.show()
 
 if __name__ == '__main__':
-    #main()
+    main()
  
