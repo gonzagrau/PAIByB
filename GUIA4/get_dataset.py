@@ -2,15 +2,14 @@ import os
 import gdown
 import tensorflow as tf
 from matplotlib import pyplot as plt
-from typing import Tuple, List, Any
-
+from typing import Tuple, List, Any, Dict
 
 URL_TEMPLATE = r'https://drive.google.com/uc?id={}'
 DATASET_URL = URL_TEMPLATE.format('1FzsBjfNG6Njt7YnXLc_bgSEb11AEYOQD')
 TFRECORD_FILE = 'train_img_mask_label_id.tfrecord'
 
 
-def parse_example(example_proto: Any) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
+def parse_example(example_proto: Any) -> Dict[str, tf.Tensor | str] :
     """
     Parse a single example from a TFRecord file.
 
@@ -30,11 +29,9 @@ def parse_example(example_proto: Any) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, 
         "image_id": tf.io.FixedLenFeature([], tf.string),
     }
     parsed_features = tf.io.parse_single_example(example_proto, features)
-    image = tf.io.decode_jpeg(parsed_features["image"])
-    mask = tf.io.decode_png(parsed_features["mask"], channels=1)  # Decode PNG to retain single-channel mask
-    label = parsed_features["label"]
-    image_id = parsed_features["image_id"]
-    return image, mask, label, image_id
+    parsed_features["image"] = tf.io.decode_jpeg(parsed_features["image"])
+    parsed_features["mask"] = tf.io.decode_png(parsed_features["mask"], channels=1)  # Decode PNG to retain single-channel mask
+    return parsed_features
 
 
 def load_dataset(tfrecord_file: str = TFRECORD_FILE) -> tf.data.TFRecordDataset:
@@ -64,7 +61,8 @@ def main():
     example_labels = []
     example_ids = []
 
-    for image, mask, label, image_id in dataset.take(5):
+    for record in dataset.take(5):
+        image, mask, label, image_id = record["image"], record["mask"], record["label"], record["image_id"]
         image = image.numpy()
         mask = mask.numpy()
         label = label.numpy().decode('utf-8')
@@ -73,7 +71,7 @@ def main():
         example_ids.append(image_id)
         
         plt.imshow(image)
-        plt.imshow(mask, alpha=0.2, cmap='Reds')
+        plt.imshow(mask, alpha=0.2, cmap='Blues')
         plt.title(f"Image {image_id}, {label=}")
         plt.axis('off')
         plt.show()
