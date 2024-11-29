@@ -163,3 +163,4 @@ cython_debug/
 
 # Datasets
 GUIA4/*.tfrecord
+*.npz
